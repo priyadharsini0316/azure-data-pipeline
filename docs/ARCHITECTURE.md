@@ -1,77 +1,90 @@
 # Architecture
 
-Production networking (documented only): see the [non-overlapping IP plan](DESIGN_AND_APPROVAL_CHECKPOINT.md#production-ip-address-plan--documented-only-not-provisioned) and [security mapping](SECURITY.md#production-ip-address-plan--documented-only-not-provisioned). No VNet, subnet, private endpoint, VPN, Azure Firewall, or SHIR was provisioned in the single-environment prototype.
+[← README](../README.md)
 
-**Status:** approved design with one live prototype environment. Deployment evidence is recorded separately in [DEPLOYMENT_LOG.md](DEPLOYMENT_LOG.md); production multi-environment networking is documented only.
-
-## Implemented prototype target (to be provisioned only after approval)
+## Prototype (deployed)
 
 ```mermaid
 flowchart LR
-    U[Priya workstation<br/>SQL tools + Power BI Desktop]
-    E[Microsoft Entra ID<br/>groups, ADF managed identity,<br/>demo service principal]
-    A[Azure Data Factory V2<br/>AutoResolve Azure IR<br/>system-assigned managed identity]
-    S[Azure SQL Database<br/>GP_S_Gen5_1 free offer<br/>public endpoint + selected firewall rules]
-    K[Azure Key Vault Standard<br/>public endpoint + firewall/RBAC]
-    L[Logic App Consumption<br/>notifications only]
+    DEV["Engineer<br/>SQL tools, Power BI"]
+    ENTRA["Entra ID<br/>groups, SP, report user"]
+    ADF["Data Factory V2<br/>AutoResolve IR<br/>managed identity"]
+    SQL["Azure SQL<br/>GP_S_Gen5_1 free tier"]
+    KV["Key Vault<br/>RBAC, default deny"]
+    LA["Logic App<br/>Consumption"]
+    MAIL["Gmail"]
 
-    E -->|authentication/RBAC| A
-    E -->|authentication/RBAC| S
-    E -->|authentication/RBAC| K
-    U -->|current public IP only, TLS| S
-    U -->|current public IP only| K
-    A -->|managed identity, TLS;<br/>Azure-services firewall exception| S
-    A -->|managed identity| K
-    A -->|HTTPS callback| L
-    S -->|audit + reconciliation data| U
+    ENTRA -.->|auth| ADF & SQL & KV
+    ADF -->|"managed identity, TLS"| SQL
+    ADF -->|"read callback URL"| KV
+    ADF -->|"event"| LA -->|"202 first, then email"| MAIL
+    DEV -->|"allowed IP only"| SQL
 ```
 
-The one reduced-cost environment logically demonstrates the KPMG stages rather than pretending four environments exist:
+- **Region:** Canada Central · **Resource group:** `rg-kpmg-kpmg-prototype`
+- **Resources:** Data Factory, SQL server + database, Key Vault, Logic App, Gmail API connection.
+- **Cost:** about CA$0.23 so far; SQL runs on the free allowance and auto-pauses.
 
-- `src` represents the source-production relational tables and synthetic changes.
-- `stg` plus reconciliation represents Dev/Test and the first data-match gate.
-- `curated` plus reconciliation represents Integration/Production and the second gate.
-- SQL configuration, schema history, RFC, run-audit, table-audit, and reconciliation tables control and evidence the flow.
-- Power BI Desktop reads curated/audit views locally; no cloud Power BI or Fabric capacity is provisioned.
+## Components
 
-The prototype intentionally has **no VNet, NSG, private endpoint, Private DNS, Storage Account, Log Analytics workspace, paid Power BI capacity, or paid Fabric capacity**. These are not hidden dependencies.
+| Component | Role |
+|---|---|
+| Data Factory | Master pipeline (Lookup → ForEach → finalize) + child pipeline (process, retry ×3, notify) |
+| Azure SQL | Source, config, staging, curated, audit, RFC and reporting, all in one database |
+| Stored procedure `ctl.usp_ProcessConfiguredTable` | Schema check, load, gates, publish, audit |
+| Key Vault | Logic App callback URL and the service principal's secret |
+| Logic App | Replies 202 to ADF, then sends a Gmail alert |
+| Power BI Desktop | Pipeline health report over `reporting` views |
 
-## End-to-end viability
+## Database layout
 
-1. ADF's AutoResolve Azure Integration Runtime reads enabled configuration rows.
-2. Parameterized datasets and a `ForEach` process each table using Azure SQL public FQDNs.
-3. The ADF managed identity authenticates to Azure SQL; no SQL password is stored in configuration.
-4. Azure SQL's public endpoint is limited to Priya's current public IP plus the Azure-services firewall exception needed by the multitenant Azure IR. TLS and least-privilege database roles remain mandatory.
-5. The pipeline detects first/subsequent load and schema differences, records an RFC, follows the previously approved projection while an RFC is pending/rejected when compatible, loads staging/curated data idempotently, reconciles it, and audits the result.
-6. A Consumption Logic App sends success/failure/schema-change notifications; the SQL RFC table remains the approval system of record.
-7. Power BI Desktop connects from Priya's allowed IP and reports pipeline health locally.
+| Schema | Purpose | KPMG stage |
+|---|---|---|
+| `src` | Synthetic source tables (KPMG table names) | Source Prod |
+| `ctl` | `PipelineConfiguration`: table, `Load`, load type, key, watermark, approved schema | Configuration table |
+| `stg` | Per-run staging copy + Gate 1 | Dev/Test |
+| `curated` | Published tables + Gate 2 | Integ/Prod |
+| `audit` | Pipeline runs, table attempts, gate checks, notifications | Evidence |
+| `rfc` | Schema change requests + version history | Approval |
+| `reporting` | Read-only views for Power BI | Consumption |
 
-This works without the five prohibited resources. The public Azure IR does not have a stable dedicated outbound IP, so the prototype requires SQL's **Allow Azure services and resources to access this server** exception. If tenant policy prohibits that control, deployment must stop; a self-hosted integration runtime or managed private networking would be a separately approved redesign, not a silent addition.
+## Security
 
-## Recommended for Production — Not Provisioned in Case-Study Prototype
+**Identity**
+- Azure SQL accepts **Entra sign-in only** (no SQL passwords).
+- ADF uses a **system-assigned managed identity** with a custom least-privilege SQL role.
+- **MFA** is enforced through Entra security defaults.
+
+**Groups (permissions go to groups, not people)**
+
+| Group | Azure role (resource group) | SQL role |
+|---|---|---|
+| `grp-kpmg-admins` | Contributor | — |
+| `grp-kpmg-developers` | Contributor | — |
+| `grp-kpmg-support` | Reader | — |
+| `grp-kpmg-report-readers` | — | `db_kpmg_reporting_reader` (SELECT on `reporting`) |
+
+**Service principal (KPMG page 4)**
+- The app registration `sp-kpmg-report-reader-*` has a short-lived client secret stored in Key Vault.
+- It can read `reporting`; access to `curated` was tested and denied.
+- **Why managed identity is preferred:** there's no secret to store, rotate or leak. A service principal is only for clients outside Azure.
+
+**Secrets and network**
+- No secrets live in Git or in the config table; Key Vault uses RBAC and a default-deny firewall.
+- SQL and Key Vault are public endpoints limited to one client IP, plus the Azure-services exception that ADF needs.
+
+## Production design (not provisioned)
 
 ```mermaid
 flowchart LR
-    OP[On-premises relational sources]
-    SHIR[Highly available SHIR]
-    WAN[VPN Gateway or ExpressRoute]
-    HUB[Hub/spoke VNets<br/>Azure Firewall + NSGs<br/>Private DNS]
-    DEV[Dev ADF + SQL + Key Vault]
-    TEST[Test ADF + SQL + Key Vault]
-    INT[Integration ADF + SQL + Key Vault]
-    PROD[Production ADF + SQL + Key Vault]
-    MON[Azure Monitor / Log Analytics<br/>enterprise alerting]
-    BI[Governed Power BI/Fabric capacity]
-
-    OP --> SHIR --> WAN --> HUB
-    HUB -->|private endpoints| DEV -->|CI/CD promotion| TEST
-    TEST -->|CI/CD promotion| INT -->|CI/CD promotion| PROD
-    DEV & TEST & INT & PROD --> MON
-    PROD --> BI
+    OP["On-prem sources"] --> SHIR["Self-hosted IR (HA)"]
+    SHIR --> WAN["VPN / ExpressRoute"]
+    WAN --> HUB["Hub VNet<br/>Azure Firewall, NSGs, Private DNS"]
+    HUB -->|"private endpoints"| DEV["Dev"] --> TEST["Test"] --> INT["Integ"] --> PROD["Prod"]
+    PROD --> BI["Power BI / Fabric"]
 ```
 
-Production should evaluate isolated environments/subscriptions, private endpoints and Private DNS, VPN/ExpressRoute, Azure Firewall, a resilient SHIR, centralized monitoring, enterprise ITSM integration, and licensed Power BI/Fabric sharing. Every item in this paragraph is **DOCUMENTED ONLY — NOT PROVISIONED** for the case-study prototype.
-
-## Canonical resource inventory
-
-The exact SKU, cost behavior, reason, and YES/NO decision for every planned or excluded resource is in [AZURE_RESOURCES.md](AZURE_RESOURCES.md).
+- A separate ADF, SQL database and Key Vault for each environment, promoted by CI/CD ([CICD_PROMOTION.md](CICD_PROMOTION.md)).
+- Private endpoints with public access disabled.
+- Conditional Access, PIM and access reviews.
+- Log Analytics alerts and ITSM integration.

@@ -62,3 +62,6 @@ screenshots/powerbi-open-verification.png
 # Test and coverage output
 coverage/
 TestResults/
+
+# Local-only archive of superseded docs
+_archive/

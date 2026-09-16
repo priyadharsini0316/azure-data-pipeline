@@ -10,8 +10,7 @@ $required=@(
   'adf/pipeline_MasterMetadataDriven.json','adf/pipeline_ProcessConfiguredTable.json',
   'adf/dataset_DynamicAzureSqlTable.json','scripts/postprovision.ps1',
   'powerbi/KPMG Pipeline Health.pbip','powerbi/KPMG Pipeline Health.Report/definition/report.json',
-  'docs/IMPLEMENTATION_GUIDE.md','docs/PRIYA_LEARNING_GUIDE.md','docs/INTERVIEW_QA.md',
-  'docs/REQUIREMENTS_TRACEABILITY_MATRIX.md'
+  'docs/ARCHITECTURE.md','docs/DESIGN_DECISIONS.md','docs/EVIDENCE.md','docs/CICD_PROMOTION.md'
 )
 foreach($path in $required){Assert-True (Test-Path -LiteralPath $path) "Missing required artifact: $path"}
 

@@ -1,104 +1,75 @@
 # CI/CD and Environment Promotion
 
-Status: **pull-request validation implemented; environment promotion documented only.** The prototype runs in one Azure environment. [The CI workflow](../.github/workflows/ci.yml) parses ADF JSON, builds Bicep, runs static tests, and scans for secrets on pull requests to main. It has no Azure login or deployment job. Multi-environment promotion remains a production design, not a deployed claim.
+[← README](../README.md)
 
-## What KPMG's use case shows
+- **Live:** pull-request checks in [.github/workflows/ci.yml](../.github/workflows/ci.yml).
+- **Designed only:** promoting one package through Dev → Test → Integ → Prod.
+- **Why it matters:** KPMG's diagram shows Dev → Test → Integ → Prod joined by a *deployment pipeline*, with changes built and tested in Test before they're deployed.
 
-- Page 1 diagram: four workspaces (**Dev -> Test -> Integ -> Prod**) connected by a "Dev to Test Data Move" and a "Deployment Pipeline".
-- Page 2 bottom lane: *Business-initiated change -> Developer makes and tests the change in Test -> Deploy the changes to the pipelines -> Rerun the pipeline*.
-
-So KPMG expects code to be **built once, tested, approved, and promoted** through environments, never edited directly in Prod.
-
-## Simple explanation
-
-Think of it like publishing a book. The author writes a draft (**Dev**), an editor checks it (**Test**), a proof copy is printed and compared with the draft (**Integ**), and only then is it sold in shops (**Prod**). The *same* manuscript moves forward. Nobody rewrites it at the printing press.
-
-## 1. The promotion flow
+## Pull-request checks (live)
 
 ```mermaid
 flowchart LR
-    DEV["Developer<br/>feature branch"] --> PR["Pull request<br/>peer review"]
-    PR --> CI{"CI checks<br/>pass?"}
-    CI -- No --> DEV
-    CI -- Yes --> MERGE["Merge to main"]
-    MERGE --> BUILD["Build one versioned<br/>release package"]
-    BUILD --> D["Deploy to DEV<br/>smoke test"]
-    D --> T["Deploy to TEST<br/>run demo scenarios"]
-    T --> A1{"Test lead<br/>approves?"}
-    A1 -- No --> DEV
-    A1 -- Yes --> I["Deploy to INTEG<br/>Gate 2 data match"]
-    I --> A2{"Change board<br/>approves RFC?"}
-    A2 -- No --> DEV
-    A2 -- Yes --> P["Deploy to PROD<br/>pause and resume triggers"]
-    P --> MON["Monitor run<br/>success message"]
+    PR(["Pull request to main"]) --> J["Parse ADF JSON"] --> B["Build Bicep"] --> T["Static tests"] --> S["Secret scan (gitleaks)"] --> R{"All green?"}
+    R -->|Yes| OK(["Ready to merge"])
+    R -->|No| FIX(["Fix and push"])
 ```
 
-## 2. What the CI checks do (before merge)
+- No cloud login and no deployment, so the checks are safe and free.
 
-```mermaid
-flowchart TD
-    START(["Pull request opened"]) --> J["Validate ADF pipeline JSON"]
-    J --> B["Build and lint Bicep infrastructure"]
-    B --> S["Check SQL scripts compile<br/>and naming rules"]
-    S --> SEC["Scan for secrets<br/>no passwords in Git"]
-    SEC --> TST["Run static tests<br/>Test-StaticImplementation.ps1"]
-    TST --> R{"All green?"}
-    R -- Yes --> OK(["Ready to merge"])
-    R -- No --> FIX(["Developer fixes"])
-```
-
-## 3. What gets promoted, and what changes per environment
+## Promotion flow (designed)
 
 ```mermaid
 flowchart LR
-    subgraph PKG["One release package - identical everywhere"]
-        IAC["Bicep infrastructure"]
-        SQL["SQL scripts<br/>tables, procedures, views"]
-        ADF["ADF pipelines<br/>and datasets"]
-        PBI["Power BI report"]
-    end
-    subgraph PARAMS["Environment settings - different per stage"]
-        P1["SQL server and database name"]
-        P2["Key Vault name"]
-        P3["Integration runtime"]
-        P4["Alert recipients"]
-        P5["Concurrency and schedule"]
-    end
-    PKG --> DEPLOY["Deployment step"]
-    PARAMS --> DEPLOY
-    DEPLOY --> ENVS["Dev / Test / Integ / Prod"]
+    DEV["Feature branch"] --> PR["PR + review"] --> CI{"CI"}
+    CI -->|pass| M["Merge"] --> B["Build one package"]
+    B --> D["Dev"] --> T["Test<br/>demo scenarios"] --> A1{"Approve"}
+    A1 --> I["Integ<br/>Gate 2 match"] --> A2{"Change board"}
+    A2 --> P["Prod<br/>pause and resume triggers"]
 ```
 
-Secrets are **never** in the package. Each environment has its own Key Vault, and the pipeline signs in with a **federated identity** (no stored password).
+- **Build once, promote the same package:** what was tested is exactly what reaches Prod.
+- **Only settings change per environment:** SQL server, Key Vault, integration runtime, alert recipients, schedule.
+- **No stored secrets:** each environment has its own Key Vault, and the pipeline signs in with OIDC federation.
 
-## 4. Two different approvals - don't mix them up
+## What gets promoted
+
+```mermaid
+flowchart LR
+    subgraph PKG["Same package everywhere"]
+        IAC["Bicep"]
+        SQLS["SQL scripts"]
+        ADFP["ADF pipelines"]
+        PBIX["Power BI"]
+    end
+    subgraph CFG["Per-environment settings"]
+        C1["Server and DB"]
+        C2["Key Vault"]
+        C3["IR and schedule"]
+    end
+    PKG --> DEP["Deploy"]
+    CFG --> DEP
+    DEP --> ENV["Dev / Test / Integ / Prod"]
+```
+
+## Two separate approval tracks
 
 ```mermaid
 flowchart TD
-    subgraph CODE["Code change approval - CI/CD"]
-        C1["Developer changes a pipeline or procedure"] --> C2["Release approved by test lead and change board"] --> C3["Promoted to Prod"]
+    subgraph CODE["Code release (CI/CD)"]
+        C1["Change pipeline or SQL"] --> C2["Test + change-board approval"] --> C3["Promote to Prod"]
     end
-    subgraph DATA["Schema change approval - pipeline RFC"]
-        D1["Source adds or renames a column"] --> D2["Pipeline raises RFC and alert"] --> D3["Data owner approves or rejects in SQL"] --> D4["Next run applies the decision"]
+    subgraph DATA["Schema change (pipeline RFC)"]
+        D1["Source column changes"] --> D2["RFC + alert"] --> D3["Data owner approves or rejects"] --> D4["Next run applies it"]
     end
-    D3 -. "if new code is needed" .-> C1
+    D3 -.->|"if new code is needed"| C1
 ```
 
-## Mapping to KPMG and to this prototype
+## Prototype vs production
 
-| KPMG item | Production design | Prototype today |
+| Item | Prototype | Production |
 |---|---|---|
-| Dev / Test / Integ / Prod | Separate resource groups or subscriptions, same package | One environment (cost choice) |
-| Deployment pipeline | GitHub Actions or Azure DevOps, one build promoted | PR validation workflow implemented; Azure deployment remains manual |
-| Developer tests change in Test | Automated scenario tests in Test | Live demo scenarios run in the one environment |
-| Deploy changes to pipelines | ADF published by release, triggers paused/resumed | ADF published by script |
-| Approval | GitHub Environments / Azure DevOps approval gates | Documented only |
-| Secrets | Per-environment Key Vault, OIDC federated sign-in | Key Vault used; OIDC not configured |
-
-## Talking points
-
-1. "We build once and promote the same package, so what we tested is exactly what reaches Prod."
-2. "Only environment settings change between stages. Secrets live in each environment's Key Vault."
-3. "Pull requests run automatic checks, so broken JSON, bad SQL or leaked secrets never reach main."
-4. "There are two approval tracks: the release approval for code, and the RFC approval for source schema changes. KPMG's bottom lane connects them."
-5. "For cost, the prototype has one environment. The scripts are parameterised, so adding Test, Integ and Prod means new parameter files, not new code."
+| Environments | One | Dev, Test, Integ, Prod |
+| Deployment | `azd provision` + script | GitHub Actions / Azure DevOps release |
+| Approvals | — | Environment approval gates |
+| Sign-in | Developer login | OIDC federated identity |
