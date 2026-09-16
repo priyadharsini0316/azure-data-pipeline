@@ -97,10 +97,12 @@ BEGIN
     DECLARE @SourceSchema sysname,@SourceTable sysname,@TargetSchema sysname,@TargetTable sysname,
             @LoadType varchar(12),@WatermarkColumn sysname,@PrimaryKey sysname,@Enabled varchar(3),
             @ApprovedColumns nvarchar(max),@ApprovedHash varchar(64),@ApprovedVersion int,@LastWatermark datetime2(7),
-            @SourceObject nvarchar(517),@TargetObject nvarchar(517),@CurrentColumns nvarchar(max),@SchemaDefinition nvarchar(max),
+            @SourceObject nvarchar(517),@TargetObject nvarchar(517),@StageObject nvarchar(517),@WorkObject nvarchar(517),@CurrentColumns nvarchar(max),@SchemaDefinition nvarchar(max),
             @CurrentHash varchar(64),@IsFirst bit,@SchemaChanged bit=0,@ApprovalStatus varchar(20)=NULL,
             @TableLoadAuditId bigint,@Sql nvarchar(max),@Missing int,@SourceCount bigint,@TargetCount bigint,
-            @DuplicateCount bigint,@NullKeyCount bigint,@NewWatermark datetime2(7),@Error nvarchar(4000);
+            @DuplicateCount bigint,@NullKeyCount bigint,@StageCount bigint,@MissingPublished bigint,
+            @NewWatermark datetime2(7),@Error nvarchar(4000),@Gate2Checked bit=0;
+    DECLARE @Gate2Checks TABLE(CheckName varchar(50),ExpectedValue nvarchar(500),ActualValue nvarchar(500),Result varchar(10),Details nvarchar(2000));
 
     SELECT @SourceSchema=SourceSchema,@SourceTable=SourceTable,@TargetSchema=TargetSchema,@TargetTable=TargetTable,
            @LoadType=LoadType,@WatermarkColumn=WatermarkColumn,@PrimaryKey=PrimaryKeyColumn,@Enabled=[Load],
@@ -112,6 +114,7 @@ BEGIN
     IF @Enabled<>'Yes' THROW 50011,'Configuration row is not enabled.',1;
     SET @SourceObject=QUOTENAME(@SourceSchema)+'.'+QUOTENAME(@SourceTable);
     SET @TargetObject=QUOTENAME(@TargetSchema)+'.'+QUOTENAME(@TargetTable);
+    SET @StageObject=QUOTENAME('stg')+'.'+QUOTENAME(@TargetTable);
     SET @IsFirst=CASE WHEN @ApprovedHash IS NULL THEN 1 ELSE 0 END;
 
     SELECT
@@ -172,67 +175,118 @@ BEGIN
     SET @TableLoadAuditId=SCOPE_IDENTITY();
 
     BEGIN TRY
-      IF @Missing>0 THROW 50013,'Previously approved column is missing or renamed; old projection cannot be loaded safely.',1;
-
-      IF OBJECT_ID(@TargetObject,'U') IS NULL
+      IF @Missing>0
       BEGIN
-        SET @Sql=N'SELECT TOP (0) '+@ApprovedColumns+N' INTO '+@TargetObject+N' FROM '+@SourceObject+N';';
-        EXEC sys.sp_executesql @Sql;
-      END
-      ELSE
-      BEGIN
-        SELECT @Sql=STRING_AGG(CONCAT('ALTER TABLE ',@TargetObject,' ADD ',QUOTENAME(c.name),' ',
-          CASE WHEN t.name IN('varchar','char','varbinary','binary') THEN CONCAT(t.name,'(',CASE WHEN c.max_length=-1 THEN 'max' ELSE CONVERT(varchar(10),c.max_length) END,')')
-               WHEN t.name IN('nvarchar','nchar') THEN CONCAT(t.name,'(',CASE WHEN c.max_length=-1 THEN 'max' ELSE CONVERT(varchar(10),c.max_length/2) END,')')
-               WHEN t.name IN('decimal','numeric') THEN CONCAT(t.name,'(',c.precision,',',c.scale,')')
-               WHEN t.name IN('datetime2','datetimeoffset','time') THEN CONCAT(t.name,'(',c.scale,')') ELSE t.name END,
-          CASE WHEN c.is_nullable=1 THEN ' NULL;' ELSE ' NULL;' END),CHAR(10))
-        FROM sys.columns c JOIN sys.types t ON c.user_type_id=t.user_type_id
-        WHERE c.object_id=OBJECT_ID(@SourceObject)
-          AND CHARINDEX(','+QUOTENAME(c.name)+',',','+@ApprovedColumns+',')>0
-          AND NOT EXISTS(SELECT 1 FROM sys.columns tc WHERE tc.object_id=OBJECT_ID(@TargetObject) AND tc.name=c.name);
-        IF @Sql IS NOT NULL EXEC sys.sp_executesql @Sql;
+        INSERT audit.ReconciliationResult(TableLoadAuditId,GateStage,CheckName,ExpectedValue,ActualValue,Result,Details)
+        VALUES(@TableLoadAuditId,'GATE_1_PRE_PUBLISH','APPROVED_SCHEMA','0',CONVERT(varchar(30),@Missing),'FAIL',
+               'Previously approved column missing or renamed; old projection cannot be loaded safely.');
+        THROW 50013,'Previously approved column is missing or renamed; old projection cannot be loaded safely.',1;
       END;
 
-      BEGIN TRAN;
-      IF @LoadType='FULL'
-      BEGIN
-        SET @Sql=N'TRUNCATE TABLE '+@TargetObject+N'; INSERT '+@TargetObject+N'('+@ApprovedColumns+N') SELECT '+@ApprovedColumns+N' FROM '+@SourceObject+N';';
-        EXEC sys.sp_executesql @Sql;
-      END
-      ELSE
-      BEGIN
-        SET @Sql=N'DELETE t FROM '+@TargetObject+N' t JOIN '+@SourceObject+N' s ON t.'+QUOTENAME(@PrimaryKey)+N'=s.'+QUOTENAME(@PrimaryKey)+
-          N' WHERE @wm IS NULL OR s.'+QUOTENAME(@WatermarkColumn)+N'>@wm; '+
-          N'INSERT '+@TargetObject+N'('+@ApprovedColumns+N') SELECT '+@ApprovedColumns+N' FROM '+@SourceObject+
-          N' WHERE @wm IS NULL OR '+QUOTENAME(@WatermarkColumn)+N'>@wm;';
-        EXEC sys.sp_executesql @Sql,N'@wm datetime2(7)',@wm=@LastWatermark;
-      END;
-      COMMIT;
-
-      SET @Sql=N'SELECT @n=COUNT_BIG(*) FROM '+@SourceObject+';'; EXEC sys.sp_executesql @Sql,N'@n bigint OUTPUT',@n=@SourceCount OUTPUT;
-      SET @Sql=N'SELECT @n=COUNT_BIG(*) FROM '+@TargetObject+';'; EXEC sys.sp_executesql @Sql,N'@n bigint OUTPUT',@n=@TargetCount OUTPUT;
-      SET @Sql=N'SELECT @n=COUNT_BIG(*) FROM (SELECT '+QUOTENAME(@PrimaryKey)+N' FROM '+@TargetObject+N' GROUP BY '+QUOTENAME(@PrimaryKey)+N' HAVING COUNT(*)>1)d;';
-      EXEC sys.sp_executesql @Sql,N'@n bigint OUTPUT',@n=@DuplicateCount OUTPUT;
-      SET @Sql=N'SELECT @n=COUNT_BIG(*) FROM '+@TargetObject+N' WHERE '+QUOTENAME(@PrimaryKey)+N' IS NULL;';
-      EXEC sys.sp_executesql @Sql,N'@n bigint OUTPUT',@n=@NullKeyCount OUTPUT;
-
-      INSERT audit.ReconciliationResult(TableLoadAuditId,GateStage,CheckName,ExpectedValue,ActualValue,Result,Details)
-      VALUES
-      (@TableLoadAuditId,'GATE_1_PRE_PUBLISH','SOURCE_TARGET_ROW_COUNT',CONVERT(varchar(30),@SourceCount),CONVERT(varchar(30),@TargetCount),CASE WHEN @SourceCount=@TargetCount THEN 'PASS' ELSE 'FAIL' END,'Approved projection row-count comparison.'),
-      (@TableLoadAuditId,'GATE_2_POST_PUBLISH','DUPLICATE_PRIMARY_KEY','0',CONVERT(varchar(30),@DuplicateCount),CASE WHEN @DuplicateCount=0 THEN 'PASS' ELSE 'FAIL' END,'Duplicate validation.'),
-      (@TableLoadAuditId,'GATE_2_POST_PUBLISH','NULL_PRIMARY_KEY','0',CONVERT(varchar(30),@NullKeyCount),CASE WHEN @NullKeyCount=0 THEN 'PASS' ELSE 'FAIL' END,'Key completeness validation.'),
-      (@TableLoadAuditId,'GATE_2_POST_PUBLISH','APPROVED_SCHEMA','0',CONVERT(varchar(30),@Missing),CASE WHEN @Missing=0 THEN 'PASS' ELSE 'FAIL' END,'Approved columns exist in source.');
-
-      IF EXISTS(SELECT 1 FROM audit.ReconciliationResult WHERE TableLoadAuditId=@TableLoadAuditId AND Result='FAIL')
-        THROW 50014,'Reconciliation failed.',1;
-
+      -- The high-water mark is fixed BEFORE staging. Later source writes are
+      -- intentionally left for the next run, never silently skipped.
       IF @LoadType='WATERMARK'
       BEGIN
         SET @Sql=N'SELECT @wm=MAX('+QUOTENAME(@WatermarkColumn)+N') FROM '+@SourceObject+N';';
         EXEC sys.sp_executesql @Sql,N'@wm datetime2(7) OUTPUT',@wm=@NewWatermark OUTPUT;
       END;
-      UPDATE ctl.PipelineConfiguration SET LastWatermarkValue=COALESCE(@NewWatermark,LastWatermarkValue),LastRunStatus='SUCCESS',LastSuccessfulRunUtc=SYSUTCDATETIME(),ModifiedUtc=SYSUTCDATETIME() WHERE ConfigId=@ConfigId;
+
+      -- Only approved columns are copied. Schema changes never flow into
+      -- curated until an RFC is approved and a subsequent run aligns columns.
+      DECLARE @i int=0;
+      WHILE @i<2
+      BEGIN
+        SET @WorkObject=CASE WHEN @i=0 THEN @StageObject ELSE @TargetObject END;
+        IF OBJECT_ID(@WorkObject,'U') IS NULL
+        BEGIN
+          SET @Sql=N'SELECT TOP (0) '+@ApprovedColumns+N' INTO '+@WorkObject+N' FROM '+@SourceObject+N';';
+          EXEC sys.sp_executesql @Sql;
+        END
+        ELSE
+        BEGIN
+          SELECT @Sql=STRING_AGG(CONVERT(nvarchar(max),CONCAT('ALTER TABLE ',@WorkObject,' ADD ',QUOTENAME(c.name),' ',
+            CASE WHEN t.name IN('varchar','char','varbinary','binary') THEN CONCAT(t.name,'(',CASE WHEN c.max_length=-1 THEN 'max' ELSE CONVERT(varchar(10),c.max_length) END,')')
+                 WHEN t.name IN('nvarchar','nchar') THEN CONCAT(t.name,'(',CASE WHEN c.max_length=-1 THEN 'max' ELSE CONVERT(varchar(10),c.max_length/2) END,')')
+                 WHEN t.name IN('decimal','numeric') THEN CONCAT(t.name,'(',c.precision,',',c.scale,')')
+                 WHEN t.name IN('datetime2','datetimeoffset','time') THEN CONCAT(t.name,'(',c.scale,')') ELSE t.name END,
+            ' NULL;')),CHAR(10))
+          FROM sys.columns c JOIN sys.types t ON c.user_type_id=t.user_type_id
+          WHERE c.object_id=OBJECT_ID(@SourceObject)
+            AND CHARINDEX(','+QUOTENAME(c.name)+',',','+@ApprovedColumns+',')>0
+            AND NOT EXISTS(SELECT 1 FROM sys.columns tc WHERE tc.object_id=OBJECT_ID(@WorkObject) AND tc.name=c.name);
+          IF @Sql IS NOT NULL EXEC sys.sp_executesql @Sql;
+        END;
+        SET @i+=1;
+      END;
+
+      -- stg is per configured target table; each attempt replaces its contents.
+      -- This prototype serializes runs for a ConfigId at ADF orchestration.
+      SET @Sql=N'TRUNCATE TABLE '+@StageObject+N'; INSERT '+@StageObject+N'('+@ApprovedColumns+N') SELECT '+@ApprovedColumns+N' FROM '+@SourceObject;
+      IF @LoadType='WATERMARK'
+        SET @Sql+=N' WHERE (@last IS NULL OR '+QUOTENAME(@WatermarkColumn)+N'>@last) AND '+QUOTENAME(@WatermarkColumn)+N'<=@captured';
+      EXEC sys.sp_executesql @Sql,N'@last datetime2(7),@captured datetime2(7)',@last=@LastWatermark,@captured=@NewWatermark;
+
+      SET @Sql=N'SELECT @n=COUNT_BIG(*) FROM '+@SourceObject;
+      IF @LoadType='WATERMARK'
+        SET @Sql+=N' WHERE (@last IS NULL OR '+QUOTENAME(@WatermarkColumn)+N'>@last) AND '+QUOTENAME(@WatermarkColumn)+N'<=@captured';
+      EXEC sys.sp_executesql @Sql,N'@last datetime2(7),@captured datetime2(7),@n bigint OUTPUT',
+        @last=@LastWatermark,@captured=@NewWatermark,@n=@SourceCount OUTPUT;
+      SET @Sql=N'SELECT @n=COUNT_BIG(*) FROM '+@StageObject;
+      EXEC sys.sp_executesql @Sql,N'@n bigint OUTPUT',@n=@StageCount OUTPUT;
+      SET @Sql=N'SELECT @n=COUNT_BIG(*) FROM (SELECT '+QUOTENAME(@PrimaryKey)+N' FROM '+@StageObject+
+        N' GROUP BY '+QUOTENAME(@PrimaryKey)+N' HAVING COUNT_BIG(*)>1)d';
+      EXEC sys.sp_executesql @Sql,N'@n bigint OUTPUT',@n=@DuplicateCount OUTPUT;
+      SET @Sql=N'SELECT @n=COUNT_BIG(*) FROM '+@StageObject+N' WHERE '+QUOTENAME(@PrimaryKey)+N' IS NULL';
+      EXEC sys.sp_executesql @Sql,N'@n bigint OUTPUT',@n=@NullKeyCount OUTPUT;
+
+      INSERT audit.ReconciliationResult(TableLoadAuditId,GateStage,CheckName,ExpectedValue,ActualValue,Result,Details)
+      VALUES
+      (@TableLoadAuditId,'GATE_1_PRE_PUBLISH','SOURCE_STAGE_ROW_COUNT',CONVERT(varchar(30),@SourceCount),CONVERT(varchar(30),@StageCount),CASE WHEN @SourceCount=@StageCount THEN 'PASS' ELSE 'FAIL' END,'Source load window equals approved-column staging rows.'),
+      (@TableLoadAuditId,'GATE_1_PRE_PUBLISH','DUPLICATE_PRIMARY_KEY','0',CONVERT(varchar(30),@DuplicateCount),CASE WHEN @DuplicateCount=0 THEN 'PASS' ELSE 'FAIL' END,'Stage key uniqueness.'),
+      (@TableLoadAuditId,'GATE_1_PRE_PUBLISH','NULL_PRIMARY_KEY','0',CONVERT(varchar(30),@NullKeyCount),CASE WHEN @NullKeyCount=0 THEN 'PASS' ELSE 'FAIL' END,'Stage key completeness.'),
+      (@TableLoadAuditId,'GATE_1_PRE_PUBLISH','APPROVED_SCHEMA','0',CONVERT(varchar(30),@Missing),CASE WHEN @Missing=0 THEN 'PASS' ELSE 'FAIL' END,'Approved source columns present.');
+      IF EXISTS(SELECT 1 FROM audit.ReconciliationResult WHERE TableLoadAuditId=@TableLoadAuditId AND GateStage='GATE_1_PRE_PUBLISH' AND Result='FAIL')
+        THROW 50014,'Gate 1 reconciliation failed; curated data was not touched.',1;
+
+      -- Publish and Gate 2 are one transaction. Failed Gate 2 results are held
+      -- in a table variable and persisted by CATCH after the rollback.
+      BEGIN TRAN;
+      IF @LoadType='FULL'
+        SET @Sql=N'DELETE FROM '+@TargetObject+N'; INSERT '+@TargetObject+N'('+@ApprovedColumns+N') SELECT '+@ApprovedColumns+N' FROM '+@StageObject;
+      ELSE
+        SET @Sql=N'DELETE t FROM '+@TargetObject+N' t JOIN '+@StageObject+N' s ON t.'+QUOTENAME(@PrimaryKey)+N'=s.'+QUOTENAME(@PrimaryKey)+
+          N'; INSERT '+@TargetObject+N'('+@ApprovedColumns+N') SELECT '+@ApprovedColumns+N' FROM '+@StageObject;
+      EXEC sys.sp_executesql @Sql;
+
+      SET @Sql=N'SELECT @n=COUNT_BIG(*) FROM '+@TargetObject;
+      EXEC sys.sp_executesql @Sql,N'@n bigint OUTPUT',@n=@TargetCount OUTPUT;
+      SET @Sql=N'SELECT @n=COUNT_BIG(*) FROM (SELECT '+QUOTENAME(@PrimaryKey)+N' FROM '+@TargetObject+
+        N' GROUP BY '+QUOTENAME(@PrimaryKey)+N' HAVING COUNT_BIG(*)>1)d';
+      EXEC sys.sp_executesql @Sql,N'@n bigint OUTPUT',@n=@DuplicateCount OUTPUT;
+      SET @Sql=N'SELECT @n=COUNT_BIG(*) FROM '+@TargetObject+N' WHERE '+QUOTENAME(@PrimaryKey)+N' IS NULL';
+      EXEC sys.sp_executesql @Sql,N'@n bigint OUTPUT',@n=@NullKeyCount OUTPUT;
+      SET @Sql=N'SELECT @n=COUNT_BIG(*) FROM '+@StageObject+N' s WHERE NOT EXISTS (SELECT 1 FROM '+@TargetObject+
+        N' t WHERE t.'+QUOTENAME(@PrimaryKey)+N'=s.'+QUOTENAME(@PrimaryKey)+N')';
+      EXEC sys.sp_executesql @Sql,N'@n bigint OUTPUT',@n=@MissingPublished OUTPUT;
+
+      INSERT @Gate2Checks(CheckName,ExpectedValue,ActualValue,Result,Details)
+      VALUES
+      ('STAGE_KEYS_PUBLISHED','0',CONVERT(varchar(30),@MissingPublished),CASE WHEN @MissingPublished=0 THEN 'PASS' ELSE 'FAIL' END,'Each staged key appears in curated.'),
+      ('DUPLICATE_PRIMARY_KEY','0',CONVERT(varchar(30),@DuplicateCount),CASE WHEN @DuplicateCount=0 THEN 'PASS' ELSE 'FAIL' END,'Curated key uniqueness.'),
+      ('NULL_PRIMARY_KEY','0',CONVERT(varchar(30),@NullKeyCount),CASE WHEN @NullKeyCount=0 THEN 'PASS' ELSE 'FAIL' END,'Curated key completeness.');
+      IF @LoadType='FULL'
+        INSERT @Gate2Checks(CheckName,ExpectedValue,ActualValue,Result,Details)
+        VALUES('FULL_ROW_COUNT',CONVERT(varchar(30),@StageCount),CONVERT(varchar(30),@TargetCount),
+               CASE WHEN @StageCount=@TargetCount THEN 'PASS' ELSE 'FAIL' END,'Full curated count equals staging.');
+      SET @Gate2Checked=1;
+      IF EXISTS(SELECT 1 FROM @Gate2Checks WHERE Result='FAIL')
+        THROW 50015,'Gate 2 reconciliation failed; curated publish was rolled back.',1;
+
+      UPDATE ctl.PipelineConfiguration SET LastWatermarkValue=COALESCE(@NewWatermark,LastWatermarkValue),
+        LastRunStatus='SUCCESS',LastSuccessfulRunUtc=SYSUTCDATETIME(),ModifiedUtc=SYSUTCDATETIME() WHERE ConfigId=@ConfigId;
+      COMMIT;
+      INSERT audit.ReconciliationResult(TableLoadAuditId,GateStage,CheckName,ExpectedValue,ActualValue,Result,Details)
+        SELECT @TableLoadAuditId,'GATE_2_POST_PUBLISH',CheckName,ExpectedValue,ActualValue,Result,Details FROM @Gate2Checks;
       UPDATE audit.TableLoadAudit SET CompletedUtc=SYSUTCDATETIME(),SourceRowCount=@SourceCount,TargetRowCount=@TargetCount,Status='SUCCESS' WHERE TableLoadAuditId=@TableLoadAuditId;
       INSERT audit.NotificationAudit(AdfPipelineRunId,ConfigId,EventType,DeliveryStatus,Message)
       VALUES(@AdfPipelineRunId,@ConfigId,CASE WHEN @SchemaChanged=1 THEN 'SCHEMA_CHANGE' ELSE 'TABLE_SUCCESS' END,'PENDING',
@@ -241,6 +295,9 @@ BEGIN
     BEGIN CATCH
       IF XACT_STATE()<>0 ROLLBACK;
       SET @Error=ERROR_MESSAGE();
+      IF @Gate2Checked=1
+        INSERT audit.ReconciliationResult(TableLoadAuditId,GateStage,CheckName,ExpectedValue,ActualValue,Result,Details)
+          SELECT @TableLoadAuditId,'GATE_2_POST_PUBLISH',CheckName,ExpectedValue,ActualValue,Result,Details FROM @Gate2Checks;
       UPDATE ctl.PipelineConfiguration SET LastRunStatus='FAILURE',ModifiedUtc=SYSUTCDATETIME() WHERE ConfigId=@ConfigId;
       UPDATE audit.TableLoadAudit SET CompletedUtc=SYSUTCDATETIME(),Status='FAILURE',ErrorMessage=@Error WHERE TableLoadAuditId=@TableLoadAuditId;
       INSERT audit.NotificationAudit(AdfPipelineRunId,ConfigId,EventType,DeliveryStatus,Message) VALUES(@AdfPipelineRunId,@ConfigId,'TABLE_FAILURE','PENDING',@Error);
