@@ -23,6 +23,12 @@ No individual members are added to the first three groups; their RBAC grants con
 
 ## Known prototype trade-off
 
+### Production IP address plan — DOCUMENTED ONLY, NOT PROVISIONED
+
+The non-overlapping design in [the approved checkpoint](DESIGN_AND_APPROVAL_CHECKPOINT.md#production-ip-address-plan--documented-only-not-provisioned) uses representative on-premises `10.10.0.0/16`, hub `10.20.0.0/16` (GatewaySubnet `10.20.0.0/27`; AzureFirewallSubnet `10.20.1.0/26`), and spoke `10.30.0.0/16` (private endpoints `10.30.1.0/24`; management/SHIR `10.30.2.0/24`; future `10.30.3.0/24`). These are planning ranges, **not** allocated or deployed resources.
+
+Known limitations: one prototype environment, no hard-delete propagation in WATERMARK loads, public Azure SQL/Key Vault endpoints with narrow client-IP firewall controls plus the Azure-services exception for ADF. No claim of production private routing.
+
 The Azure-services SQL firewall switch is broader than a dedicated private network path because the public Azure IR does not provide one fixed outbound IP. Managed identity, least-privilege SQL grants, TLS, and selected client-IP rules reduce—but do not remove—that network-level trade-off. This is acceptable only as an explicitly documented, reduced-cost prototype decision.
 
 If organizational policy blocks this configuration, do not weaken the firewall or provision an excluded private endpoint. Stop and seek approval for a self-hosted integration runtime or private-network redesign.

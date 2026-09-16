@@ -1,6 +1,8 @@
 # Architecture
 
-**Status:** revised pre-deployment design; awaiting Priya's approval. Nothing in this document is deployment evidence.
+Production networking (documented only): see the [non-overlapping IP plan](DESIGN_AND_APPROVAL_CHECKPOINT.md#production-ip-address-plan--documented-only-not-provisioned) and [security mapping](SECURITY.md#production-ip-address-plan--documented-only-not-provisioned). No VNet, subnet, private endpoint, VPN, Azure Firewall, or SHIR was provisioned in the single-environment prototype.
+
+**Status:** approved design with one live prototype environment. Deployment evidence is recorded separately in [DEPLOYMENT_LOG.md](DEPLOYMENT_LOG.md); production multi-environment networking is documented only.
 
 ## Implemented prototype target (to be provisioned only after approval)
 
