@@ -1,6 +1,6 @@
 # CI/CD and Environment Promotion
 
-Status: **DOCUMENTED ONLY - NOT PROVISIONED.** The prototype runs in one Azure environment to keep cost at zero. This page shows how the same code would move from Dev to Prod in a real KPMG client setup.
+Status: **pull-request validation implemented; environment promotion documented only.** The prototype runs in one Azure environment. [The CI workflow](../.github/workflows/ci.yml) parses ADF JSON, builds Bicep, runs static tests, and scans for secrets on pull requests to main. It has no Azure login or deployment job. Multi-environment promotion remains a production design, not a deployed claim.
 
 ## What KPMG's use case shows
 
@@ -89,7 +89,7 @@ flowchart TD
 | KPMG item | Production design | Prototype today |
 |---|---|---|
 | Dev / Test / Integ / Prod | Separate resource groups or subscriptions, same package | One environment (cost choice) |
-| Deployment pipeline | GitHub Actions or Azure DevOps, one build promoted | Manual `azd up` + `scripts/deploy-adf.ps1` |
+| Deployment pipeline | GitHub Actions or Azure DevOps, one build promoted | PR validation workflow implemented; Azure deployment remains manual |
 | Developer tests change in Test | Automated scenario tests in Test | Live demo scenarios run in the one environment |
 | Deploy changes to pipelines | ADF published by release, triggers paused/resumed | ADF published by script |
 | Approval | GitHub Environments / Azure DevOps approval gates | Documented only |
