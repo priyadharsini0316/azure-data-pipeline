@@ -135,6 +135,12 @@ BEGIN
       IF NOT EXISTS(SELECT 1 FROM rfc.SchemaHistory WHERE ConfigId=@ConfigId AND SchemaVersion=1)
         INSERT rfc.SchemaHistory(ConfigId,SchemaVersion,SchemaHash,ColumnList,SchemaDefinition,ApprovalStatus,ApprovedBy,ApprovedUtc)
         VALUES(@ConfigId,1,@CurrentHash,@CurrentColumns,@SchemaDefinition,'APPROVED','INITIAL_LOAD',SYSUTCDATETIME());
+      IF NOT EXISTS(SELECT 1 FROM rfc.SchemaChangeRequest WHERE ConfigId=@ConfigId AND DetectedSchemaHash=@CurrentHash)
+        INSERT rfc.SchemaChangeRequest(ConfigId,DetectedSchemaHash,PreviousSchemaHash,DetectedColumnList,DetectedSchemaDefinition,
+          ChangeSummary,Compatibility,Status,DecisionUtc,DecisionBy,DecisionNotes)
+        VALUES(@ConfigId,@CurrentHash,NULL,@CurrentColumns,@SchemaDefinition,
+          'Initial approved source schema established for first load.','INITIAL_LOAD','APPROVED',SYSUTCDATETIME(),
+          'INITIAL_LOAD','Prototype baseline approval.');
     END
     ELSE IF @CurrentHash<>@ApprovedHash
     BEGIN
@@ -300,6 +306,10 @@ BEGIN
           SELECT @TableLoadAuditId,'GATE_2_POST_PUBLISH',CheckName,ExpectedValue,ActualValue,Result,Details FROM @Gate2Checks;
       UPDATE ctl.PipelineConfiguration SET LastRunStatus='FAILURE',ModifiedUtc=SYSUTCDATETIME() WHERE ConfigId=@ConfigId;
       UPDATE audit.TableLoadAudit SET CompletedUtc=SYSUTCDATETIME(),Status='FAILURE',ErrorMessage=@Error WHERE TableLoadAuditId=@TableLoadAuditId;
+      IF @SchemaChanged=1
+        INSERT audit.NotificationAudit(AdfPipelineRunId,ConfigId,EventType,DeliveryStatus,Message)
+        VALUES(@AdfPipelineRunId,@ConfigId,'SCHEMA_CHANGE','PENDING',
+          CONCAT('Source schema change status ',COALESCE(@ApprovalStatus,'PENDING'),'; previously approved projection could not be loaded: ',@Error));
       INSERT audit.NotificationAudit(AdfPipelineRunId,ConfigId,EventType,DeliveryStatus,Message) VALUES(@AdfPipelineRunId,@ConfigId,'TABLE_FAILURE','PENDING',@Error);
       THROW;
     END CATCH;
