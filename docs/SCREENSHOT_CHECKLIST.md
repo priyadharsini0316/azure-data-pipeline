@@ -23,8 +23,7 @@ Never fabricate evidence. Redact tenant/subscription/object IDs, personal IP/ema
 | NEEDED | SQL audit | Same run PARTIAL_SUCCESS, 1 success/1 failure, 4 attempts for config 2 | Retry-aware audit aggregation |
 | NEEDED | ADF Monitor → recovery run | Both tables succeeded after restore | Restartability |
 | NEEDED | Logic App → Run history | Successful notification runs; do not expose callback | Notification execution |
-| IN PROGRESS | Power BI Desktop → `KPMG Pipeline Health.pbip` | Click Refresh now, organizational account, then capture populated page | Local health reporting |
-| COMPLETE | `screenshots/powerBI/PowerBI_home.png` | Genuine earlier populated Desktop capture | Original Overview visuals render; it is not evidence for the requested new pages |
+| COMPLETE | Power BI Desktop → `KPMG Pipeline Health.pbip` | Refreshed by Priya, then `screenshots/powerBI/PowerBI_home.png` captured from Desktop bridge | Populated Overview with pending/reconciliation/retry cards; not evidence for the unbuilt detail pages |
 | NEEDED | Azure Cost Management → Cost analysis | Resource-group filtered cost | Observed prototype cost, not an estimate |
 
 No screenshot should claim Private Endpoints, VNet/NSG, VPN/ExpressRoute, Azure Firewall, SHIR, Log Analytics, Storage, separate environments, or paid Power BI/Fabric capacity; those were not provisioned.
@@ -48,3 +47,5 @@ No screenshot should claim Private Endpoints, VNet/NSG, VPN/ExpressRoute, Azure 
 📸 SCREENSHOT NEEDED (Priya): Power BI reporting group and new SQL views — Desktop refreshed as powerbi-reader and SQL reporting query — all new views populated and readable through group-only membership; do not capture until direct role removed after verification.
 
 📸 SCREENSHOT NEEDED (Priya): Gmail delivery if authorized — Logic App run history and Gmail inbox — same test event in both, with callback/token/header details hidden.
+
+📸 SCREENSHOT NEEDED (Priya): Gmail connector reauthorization — API connections → gmail-kpmg-notify → Edit API connection — Connected with send-mail scope granted; do not show OAuth tokens or callback URLs. Current test run `08584120258021519282617111833CU16` shows 403 insufficient scopes, not delivery.
