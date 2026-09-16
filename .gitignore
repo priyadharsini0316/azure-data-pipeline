@@ -1,0 +1,67 @@
+# Environment variables and local secrets
+.env
+.env.*
+!.env.example
+*.secret
+*.secrets
+secrets/
+credentials/
+.firecrawl/
+
+# Azure and deployment authentication/configuration
+.azure/
+.azd/
+azureProfile.json
+TokenCache.dat
+*.publishsettings
+*.pem
+*.pfx
+*.key
+
+# Local application settings that may contain connection strings
+local.settings.json
+appsettings.*.local.json
+connections.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Node.js
+node_modules/
+npm-debug.log*
+npx-debug.log*
+
+# .NET and build output
+bin/
+obj/
+
+# IDE, OS, and temporary files
+tmp/
+_to_delete/
+.vs/
+.vscode/settings.json
+.idea/
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+*.log
+
+# Power BI local and generated state
+*.pbix.autosave
+**/.pbi/localSettings.json
+**/.pbi/cache.abf
+**/.pbi/
+screenshots/*-latest.png
+screenshots/powerbi-open-verification.png
+
+# Test and coverage output
+coverage/
+TestResults/
+
+# Local-only archive of superseded docs
+_archive/

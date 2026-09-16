@@ -1,0 +1,10 @@
+{
+  "properties": {
+    "annotations": ["KPMG prototype", "Managed identity"],
+    "type": "AzureSqlDatabase",
+    "typeProperties": {
+      "connectionString": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=__SQL_SERVER_FQDN__;Initial Catalog=__SQL_DATABASE_NAME__",
+      "authenticationType": "SystemAssignedManagedIdentity"
+    }
+  }
+}

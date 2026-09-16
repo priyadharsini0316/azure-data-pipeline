@@ -1,0 +1,10 @@
+{
+  "properties": {
+    "annotations": ["KPMG prototype", "Managed identity"],
+    "type": "AzureKeyVault",
+    "typeProperties": {
+      "baseUrl": "https://__KEY_VAULT_NAME__.vault.azure.net/"
+    }
+  }
+}
+

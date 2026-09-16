@@ -1,0 +1,81 @@
+{
+  "properties": {
+    "description": "One metadata-driven master pipeline: start audit, read enabled configuration, ForEach table, finalize audit.",
+    "activities": [
+      {
+        "name": "Start pipeline audit",
+        "type": "SqlServerStoredProcedure",
+        "dependsOn": [],
+        "policy": { "timeout": "0.00:05:00", "retry": 1, "retryIntervalInSeconds": 10 },
+        "linkedServiceName": { "referenceName": "AzureSqlPrototype", "type": "LinkedServiceReference" },
+        "typeProperties": {
+          "storedProcedureName": "[ctl].[usp_StartPipelineRun]",
+          "storedProcedureParameters": {
+            "AdfPipelineRunId": { "value": { "value": "@pipeline().RunId", "type": "Expression" }, "type": "String" },
+            "PipelineName": { "value": { "value": "@pipeline().Pipeline", "type": "Expression" }, "type": "String" }
+          }
+        }
+      },
+      {
+        "name": "Lookup enabled configuration",
+        "type": "Lookup",
+        "dependsOn": [{ "activity": "Start pipeline audit", "dependencyConditions": ["Succeeded"] }],
+        "policy": { "timeout": "0.00:05:00", "retry": 1, "retryIntervalInSeconds": 10 },
+        "typeProperties": {
+          "source": {
+            "type": "AzureSqlSource",
+            "sqlReaderQuery": "SELECT ConfigId,SourceSchema,SourceTable,TargetSchema,TargetTable,LoadType,WatermarkColumn,PrimaryKeyColumn,RetryCount,RetryIntervalSeconds FROM ctl.PipelineConfiguration WHERE [Load]='Yes' ORDER BY ConfigId",
+            "queryTimeout": "00:05:00",
+            "partitionOption": "None"
+          },
+          "dataset": {
+            "referenceName": "DynamicAzureSqlTable",
+            "type": "DatasetReference",
+            "parameters": { "SchemaName": "ctl", "TableName": "PipelineConfiguration" }
+          },
+          "firstRowOnly": false
+        }
+      },
+      {
+        "name": "ForEach enabled table",
+        "type": "ForEach",
+        "dependsOn": [{ "activity": "Lookup enabled configuration", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "items": { "value": "@activity('Lookup enabled configuration').output.value", "type": "Expression" },
+          "isSequential": false,
+          "batchCount": 2,
+          "activities": [
+            {
+              "name": "Execute table framework",
+              "type": "ExecutePipeline",
+              "dependsOn": [],
+              "policy": { "secureInput": false },
+              "typeProperties": {
+                "pipeline": { "referenceName": "ProcessConfiguredTable", "type": "PipelineReference" },
+                "waitOnCompletion": true,
+                "parameters": {
+                  "ConfigId": { "value": "@item().ConfigId", "type": "Expression" },
+                  "ParentRunId": { "value": "@pipeline().RunId", "type": "Expression" }
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "Finalize pipeline audit",
+        "type": "SqlServerStoredProcedure",
+        "dependsOn": [{ "activity": "ForEach enabled table", "dependencyConditions": ["Completed"] }],
+        "policy": { "timeout": "0.00:05:00", "retry": 1, "retryIntervalInSeconds": 10 },
+        "linkedServiceName": { "referenceName": "AzureSqlPrototype", "type": "LinkedServiceReference" },
+        "typeProperties": {
+          "storedProcedureName": "[ctl].[usp_FinalizePipelineRun]",
+          "storedProcedureParameters": {
+            "AdfPipelineRunId": { "value": { "value": "@pipeline().RunId", "type": "Expression" }, "type": "String" }
+          }
+        }
+      }
+    ],
+    "annotations": ["KPMG", "Lookup", "ForEach", "Dynamic", "Configuration driven"]
+  }
+}

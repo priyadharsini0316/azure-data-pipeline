@@ -1,0 +1,185 @@
+/// Single-row operational summary used for headline monitoring measures.
+table 'Dashboard Summary'
+	lineageTag: 405f258a-dbbc-46f6-bf41-a59cd7a04c1c
+
+	/// Number of source tables registered in pipeline configuration.
+	measure 'Total Configured Tables' = MAX('Dashboard Summary'[Total Configured Tables Value])
+		formatString: #,##0
+		lineageTag: 4fabc625-7e35-423c-b997-272e5eda242c
+
+	/// Number of configured tables currently eligible for processing.
+	measure 'Enabled Tables' = MAX('Dashboard Summary'[Enabled Tables Value])
+		formatString: #,##0
+		lineageTag: cb16e644-773f-4710-a49a-eb8d93fb3860
+
+	/// Count of fully successful master-pipeline runs.
+	measure 'Successful Runs' = MAX('Dashboard Summary'[Successful Runs Value])
+		formatString: #,##0
+		lineageTag: b62bbf43-99ba-4a72-a521-d0fe21670885
+
+	/// Count of failed or partially successful master-pipeline runs.
+	measure 'Failed or Partial Runs' = MAX('Dashboard Summary'[Failed or Partial Runs Value])
+		formatString: #,##0
+		lineageTag: 674815e4-5f45-4551-874e-f861520d775c
+
+	/// Total source rows validated by successful table-load attempts.
+	measure 'Rows Processed' = MAX('Dashboard Summary'[Rows Processed Value])
+		formatString: #,##0
+		lineageTag: ec408857-6b9b-4a38-ac20-45b67112d7c4
+
+	/// Number of schema-change decisions currently awaiting approval.
+	measure 'Pending Schema Changes' = MAX('Dashboard Summary'[Pending Schema Changes Value])
+		formatString: #,##0
+		lineageTag: 477c8bca-1260-4397-a0a1-270a6720bc48
+
+	/// Number of reconciliation checks that returned FAIL.
+	measure 'Reconciliation Failures' = MAX('Dashboard Summary'[Reconciliation Failures Value])
+		formatString: #,##0
+		lineageTag: 2a1e8b65-0eb2-4746-a6a6-2c2d8e42401f
+
+	/// Average completed master-pipeline duration in seconds.
+	measure 'Average Duration Seconds' = MAX('Dashboard Summary'[Average Duration Seconds Value])
+		formatString: #,##0.00
+		lineageTag: 21e3e631-5921-4d64-b5cb-33f377a747fc
+
+	column 'Total Configured Tables Value'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 9ebd9c94-3672-4921-9346-00c9e97fe0bc
+		summarizeBy: sum
+		sourceColumn: TotalConfiguredTables
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Enabled Tables Value'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 25887018-305b-4ff9-b465-39ba559cecb2
+		summarizeBy: sum
+		sourceColumn: EnabledTables
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Successful Runs Value'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: f00d5bc5-1b88-4685-a8c2-1f4f83ddfae8
+		summarizeBy: sum
+		sourceColumn: SuccessfulRuns
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Failed or Partial Runs Value'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 9f6b53c2-f5ee-4d96-a0d1-68d0a8de3b52
+		summarizeBy: sum
+		sourceColumn: FailedOrPartialRuns
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Rows Processed Value'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 755dc671-61d3-4b11-87f4-70c82a3834c0
+		summarizeBy: sum
+		sourceColumn: RowsProcessed
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Last Successful Run UTC'
+		dataType: dateTime
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: f8783702-3afc-41be-8dc2-842a31269a90
+		summarizeBy: none
+		sourceColumn: LastSuccessfulRunUtc
+
+		variation Variation
+			isDefault
+			relationship: d96de83f-9cbb-485d-bfd1-f4fe50be6d1d
+			defaultHierarchy: LocalDateTable_7a2247bc-f15d-49a8-bb70-7f1708e3c8cd.'Date Hierarchy'
+
+	column 'Schema Changes Detected Value'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: d278db75-a5b3-4d3b-bb0f-7824fa827bef
+		summarizeBy: sum
+		sourceColumn: SchemaChangesDetected
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Pending Schema Changes Value'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: de609e48-584e-450c-8f7d-d1e6ebcea6bf
+		summarizeBy: sum
+		sourceColumn: PendingSchemaChanges
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Reconciliation Failures Value'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: b7f2bb77-061d-42b4-a6fb-9f1ab6e517cd
+		summarizeBy: sum
+		sourceColumn: ReconciliationFailures
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Average Duration Seconds Value'
+		dataType: double
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 8b5940da-bfcc-4f1c-8d17-18c1436ba5fa
+		summarizeBy: sum
+		sourceColumn: AverageDurationSeconds
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column ApprovedSchemaChanges
+		dataType: int64
+		formatString: 0
+		lineageTag: 23868acf-6744-4322-8edf-d10a35998ac2
+		summarizeBy: sum
+		sourceColumn: ApprovedSchemaChanges
+
+		annotation SummarizationSetBy = Automatic
+
+	column RejectedSchemaChanges
+		dataType: int64
+		formatString: 0
+		lineageTag: c48c5aa9-2b61-40fd-a3d9-5e711abdddd6
+		summarizeBy: sum
+		sourceColumn: RejectedSchemaChanges
+
+		annotation SummarizationSetBy = Automatic
+
+	column TotalRetryAttempts
+		dataType: int64
+		formatString: 0
+		lineageTag: 64d4b2a8-52d7-41e7-b47d-54963057e55a
+		summarizeBy: sum
+		sourceColumn: TotalRetryAttempts
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Dashboard Summary' = m
+		mode: import
+		source =
+				let
+					Source = Sql.Database(#"Server", #"Database", [CreateNavigationProperties=false]),
+					DashboardSummary = Source{[Schema="reporting", Item="vw_PipelineDashboardSummary"]}[Data]
+				in
+					DashboardSummary
+

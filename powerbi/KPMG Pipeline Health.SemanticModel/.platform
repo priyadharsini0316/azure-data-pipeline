@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "SemanticModel",
+    "displayName": "KPMG Pipeline Health"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "3dff7754-656d-4895-b662-507568ce1dde"
+  }
+}

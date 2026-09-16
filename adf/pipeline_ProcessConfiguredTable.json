@@ -1,0 +1,164 @@
+{
+  "properties": {
+    "description": "Processes one enabled metadata row. SQL owns atomic schema approval, idempotent loading, reconciliation, and audit; ADF owns retry and notification orchestration.",
+    "parameters": {
+      "ConfigId": { "type": "int" },
+      "ParentRunId": { "type": "string" }
+    },
+    "activities": [
+      {
+        "name": "Process configured table",
+        "type": "SqlServerStoredProcedure",
+        "dependsOn": [],
+        "policy": { "timeout": "0.00:20:00", "retry": 3, "retryIntervalInSeconds": 15, "secureOutput": false, "secureInput": false },
+        "linkedServiceName": { "referenceName": "AzureSqlPrototype", "type": "LinkedServiceReference" },
+        "typeProperties": {
+          "storedProcedureName": "[ctl].[usp_ProcessConfiguredTable]",
+          "storedProcedureParameters": {
+            "ConfigId": { "value": { "value": "@pipeline().parameters.ConfigId", "type": "Expression" }, "type": "Int32" },
+            "AdfPipelineRunId": { "value": { "value": "@pipeline().parameters.ParentRunId", "type": "Expression" }, "type": "String" }
+          }
+        }
+      },
+      {
+        "name": "Read notification event",
+        "type": "Lookup",
+        "dependsOn": [{ "activity": "Process configured table", "dependencyConditions": ["Succeeded"] }],
+        "policy": { "timeout": "0.00:05:00", "retry": 0, "retryIntervalInSeconds": 10, "secureOutput": false, "secureInput": false },
+        "typeProperties": {
+          "source": {
+            "type": "AzureSqlSource",
+            "sqlReaderQuery": { "value": "@concat('SELECT TOP (1) n.EventType, n.Message, CASE WHEN n.EventType=''SCHEMA_CHANGE'' THEN CONCAT(''SCHEMA_CHANGE_'',COALESCE((SELECT TOP (1) r.Status FROM rfc.SchemaChangeRequest r WHERE r.ConfigId=n.ConfigId ORDER BY r.SchemaChangeRequestId DESC),''PENDING'')) ELSE ''SUCCESS'' END AS Status FROM audit.NotificationAudit n WHERE n.AdfPipelineRunId=''', pipeline().parameters.ParentRunId, ''' AND n.ConfigId=', string(pipeline().parameters.ConfigId), ' ORDER BY n.NotificationAuditId DESC')", "type": "Expression" },
+            "queryTimeout": "00:05:00",
+            "partitionOption": "None"
+          },
+          "dataset": {
+            "referenceName": "DynamicAzureSqlTable",
+            "type": "DatasetReference",
+            "parameters": { "SchemaName": "audit", "TableName": "NotificationAudit" }
+          },
+          "firstRowOnly": true
+        }
+      },
+      {
+        "name": "Get notification endpoint",
+        "type": "WebActivity",
+        "dependsOn": [{ "activity": "Read notification event", "dependencyConditions": ["Succeeded"] }],
+        "policy": { "timeout": "0.00:02:00", "retry": 2, "retryIntervalInSeconds": 10, "secureOutput": true, "secureInput": false },
+        "typeProperties": {
+          "method": "GET",
+          "url": "https://__KEY_VAULT_NAME__.vault.azure.net/secrets/logic-app-notification-endpoint?api-version=7.4",
+          "authentication": { "type": "MSI", "resource": "https://vault.azure.net" }
+        }
+      },
+      {
+        "name": "Send table notification",
+        "type": "WebActivity",
+        "dependsOn": [{ "activity": "Get notification endpoint", "dependencyConditions": ["Succeeded"] }],
+        "policy": { "timeout": "0.00:02:00", "retry": 2, "retryIntervalInSeconds": 10, "secureOutput": true, "secureInput": true },
+        "typeProperties": {
+          "method": "POST",
+          "url": { "value": "@activity('Get notification endpoint').output.value", "type": "Expression" },
+          "headers": { "Content-Type": "application/json" },
+          "body": {
+            "value": "@json(concat('{\"eventType\":\"', activity('Read notification event').output.firstRow.EventType, '\",\"pipelineRunId\":\"', pipeline().parameters.ParentRunId, '\",\"tableName\":\"ConfigId ', string(pipeline().parameters.ConfigId), '\",\"status\":\"', activity('Read notification event').output.firstRow.Status, '\",\"message\":\"', replace(activity('Read notification event').output.firstRow.Message, '\"', ''''), '\",\"occurredUtc\":\"', utcNow(), '\"}'))",
+            "type": "Expression"
+          }
+        }
+      },
+      {
+        "name": "Read failure event",
+        "type": "Lookup",
+        "dependsOn": [{ "activity": "Process configured table", "dependencyConditions": ["Failed"] }],
+        "policy": { "timeout": "0.00:05:00", "retry": 0, "retryIntervalInSeconds": 10, "secureOutput": false, "secureInput": false },
+        "typeProperties": {
+          "source": {
+            "type": "AzureSqlSource",
+            "sqlReaderQuery": { "value": "@concat('SELECT TOP (1) EventType, Message, ''FAILURE'' AS Status FROM audit.NotificationAudit WHERE AdfPipelineRunId=''', pipeline().parameters.ParentRunId, ''' AND ConfigId=', string(pipeline().parameters.ConfigId), ' AND EventType=''TABLE_FAILURE'' ORDER BY NotificationAuditId DESC')", "type": "Expression" },
+            "queryTimeout": "00:05:00",
+            "partitionOption": "None"
+          },
+          "dataset": {
+            "referenceName": "DynamicAzureSqlTable",
+            "type": "DatasetReference",
+            "parameters": { "SchemaName": "audit", "TableName": "NotificationAudit" }
+          },
+          "firstRowOnly": true
+        }
+      },
+      {
+        "name": "Get failure endpoint",
+        "type": "WebActivity",
+        "dependsOn": [{ "activity": "Read failure event", "dependencyConditions": ["Succeeded"] }],
+        "policy": { "timeout": "0.00:02:00", "retry": 2, "retryIntervalInSeconds": 10, "secureOutput": true, "secureInput": false },
+        "typeProperties": {
+          "method": "GET",
+          "url": "https://__KEY_VAULT_NAME__.vault.azure.net/secrets/logic-app-notification-endpoint?api-version=7.4",
+          "authentication": { "type": "MSI", "resource": "https://vault.azure.net" }
+        }
+      },
+      {
+        "name": "Send failure notification",
+        "type": "WebActivity",
+        "dependsOn": [{ "activity": "Get failure endpoint", "dependencyConditions": ["Succeeded"] }],
+        "policy": { "timeout": "0.00:02:00", "retry": 2, "retryIntervalInSeconds": 10, "secureOutput": true, "secureInput": true },
+        "typeProperties": {
+          "method": "POST",
+          "url": { "value": "@activity('Get failure endpoint').output.value", "type": "Expression" },
+          "headers": { "Content-Type": "application/json" },
+          "body": {
+            "value": "@json(concat('{\"eventType\":\"', activity('Read failure event').output.firstRow.EventType, '\",\"pipelineRunId\":\"', pipeline().parameters.ParentRunId, '\",\"tableName\":\"ConfigId ', string(pipeline().parameters.ConfigId), '\",\"status\":\"', activity('Read failure event').output.firstRow.Status, '\",\"message\":\"', replace(activity('Read failure event').output.firstRow.Message, '\"', ''''), '\",\"occurredUtc\":\"', utcNow(), '\"}'))",
+            "type": "Expression"
+          }
+        }
+      },
+      {
+        "name": "Read schema failure event",
+        "type": "Lookup",
+        "dependsOn": [{ "activity": "Send failure notification", "dependencyConditions": ["Completed"] }],
+        "policy": { "timeout": "0.00:05:00", "retry": 0, "retryIntervalInSeconds": 10 },
+        "typeProperties": {
+          "source": {
+            "type": "AzureSqlSource",
+            "sqlReaderQuery": { "value": "@concat('SELECT TOP (1) n.EventType, n.Message, CONCAT(''SCHEMA_CHANGE_'',COALESCE((SELECT TOP (1) r.Status FROM rfc.SchemaChangeRequest r WHERE r.ConfigId=n.ConfigId ORDER BY r.SchemaChangeRequestId DESC),''PENDING'')) AS Status FROM audit.NotificationAudit n WHERE n.AdfPipelineRunId=''', pipeline().parameters.ParentRunId, ''' AND n.ConfigId=', string(pipeline().parameters.ConfigId), ' AND n.EventType=''SCHEMA_CHANGE'' ORDER BY n.NotificationAuditId DESC')", "type": "Expression" },
+            "queryTimeout": "00:05:00",
+            "partitionOption": "None"
+          },
+          "dataset": {
+            "referenceName": "DynamicAzureSqlTable",
+            "type": "DatasetReference",
+            "parameters": { "SchemaName": "audit", "TableName": "NotificationAudit" }
+          },
+          "firstRowOnly": false
+        }
+      },
+      {
+        "name": "Send schema failure if present",
+        "type": "IfCondition",
+        "dependsOn": [{ "activity": "Read schema failure event", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "expression": { "value": "@greater(activity('Read schema failure event').output.count,0)", "type": "Expression" },
+          "ifTrueActivities": [
+            {
+              "name": "Send schema failure notification",
+              "type": "WebActivity",
+              "dependsOn": [],
+              "policy": { "timeout": "0.00:02:00", "retry": 2, "retryIntervalInSeconds": 10, "secureOutput": true, "secureInput": true },
+              "typeProperties": {
+                "method": "POST",
+                "url": { "value": "@activity('Get failure endpoint').output.value", "type": "Expression" },
+                "headers": { "Content-Type": "application/json" },
+                "body": {
+                  "value": "@json(concat('{\"eventType\":\"SCHEMA_CHANGE\",\"pipelineRunId\":\"', pipeline().parameters.ParentRunId, '\",\"tableName\":\"ConfigId ', string(pipeline().parameters.ConfigId), '\",\"status\":\"', activity('Read schema failure event').output.value[0].Status, '\",\"message\":\"', replace(activity('Read schema failure event').output.value[0].Message, '\"', ''''), '\",\"occurredUtc\":\"', utcNow(), '\"}'))",
+                  "type": "Expression"
+                }
+              }
+            }
+          ],
+          "ifFalseActivities": []
+        }
+      }
+    ],
+    "annotations": ["KPMG", "Metadata-driven", "Retry 3", "Table isolation"]
+  }
+}

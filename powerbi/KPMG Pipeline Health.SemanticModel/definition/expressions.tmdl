@@ -1,0 +1,10 @@
+expression Server = "sql-kpmg-kpmgprototype-466kwo.database.windows.net" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+	lineageTag: a6584ab5-74fc-4e0c-9a76-c75e89d29793
+
+	annotation PBI_ResultType = Text
+
+expression Database = "sqldb-kpmg-pipeline" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+	lineageTag: 63ab11a4-c1d0-4a56-812a-2d7ccb1d017a
+
+	annotation PBI_ResultType = Text
+

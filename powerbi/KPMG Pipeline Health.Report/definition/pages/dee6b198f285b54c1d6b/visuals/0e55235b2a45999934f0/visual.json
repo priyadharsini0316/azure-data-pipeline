@@ -1,0 +1,239 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
+  "name": "0e55235b2a45999934f0",
+  "position": {
+    "x": 670.15197568389056,
+    "y": 330,
+    "z": 4000,
+    "height": 365,
+    "width": 610,
+    "tabOrder": 4000
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Pipeline Health"
+                    }
+                  },
+                  "Property": "Source Object"
+                }
+              },
+              "queryRef": "Pipeline Health.Source Object",
+              "nativeQueryRef": "Source Object"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Pipeline Health"
+                    }
+                  },
+                  "Property": "Load"
+                }
+              },
+              "queryRef": "Pipeline Health.Load",
+              "nativeQueryRef": "Load"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Pipeline Health"
+                    }
+                  },
+                  "Property": "Load Type"
+                }
+              },
+              "queryRef": "Pipeline Health.Load Type",
+              "nativeQueryRef": "Load Type"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Pipeline Health"
+                    }
+                  },
+                  "Property": "Last Run Status"
+                }
+              },
+              "queryRef": "Pipeline Health.Last Run Status",
+              "nativeQueryRef": "Last Run Status"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Pipeline Health"
+                    }
+                  },
+                  "Property": "Approved Schema Version"
+                }
+              },
+              "queryRef": "Pipeline Health.Approved Schema Version",
+              "nativeQueryRef": "Approved Schema Version"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Pipeline Health"
+                    }
+                  },
+                  "Property": "Pending Schema Changes"
+                }
+              },
+              "queryRef": "Pipeline Health.Pending Schema Changes",
+              "nativeQueryRef": "Pending Schema Changes"
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "columnHeaders": [
+        {
+          "properties": {
+            "columnAdjustment": {
+              "expr": {
+                "Literal": {
+                  "Value": "'growToFit'"
+                }
+              }
+            },
+            "autoSizeColumnWidth": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Configured Table Health'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "2b519660a298c37dcdd6",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Pipeline Health"
+              }
+            },
+            "Property": "Source Object"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "d3bb13562c2704c9d516",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Pipeline Health"
+              }
+            },
+            "Property": "Load"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "621103d8ddc08b09c3e7",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Pipeline Health"
+              }
+            },
+            "Property": "Load Type"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "1ae6e28baa1d82b02831",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Pipeline Health"
+              }
+            },
+            "Property": "Last Run Status"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "f9f8cdc95815bc5a98dd",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Pipeline Health"
+              }
+            },
+            "Property": "Approved Schema Version"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "42fd1942c0858ee14d31",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Pipeline Health"
+              }
+            },
+            "Property": "Pending Schema Changes"
+          }
+        },
+        "type": "Advanced"
+      }
+    ]
+  }
+}

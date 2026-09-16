@@ -1,0 +1,32 @@
+name: KPMG prototype validation
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Parse all ADF JSON
+        shell: pwsh
+        run: |
+          Get-ChildItem adf -Filter *.json | ForEach-Object {
+            Get-Content -Raw -LiteralPath $_.FullName | ConvertFrom-Json | Out-Null
+          }
+      - name: Build Bicep
+        run: az bicep build --file infra/main.bicep
+      - name: Static implementation tests
+        shell: pwsh
+        run: ./tests/Test-StaticImplementation.ps1
+      - name: Secret scan
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

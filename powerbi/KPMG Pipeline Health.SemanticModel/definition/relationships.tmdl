@@ -1,0 +1,25 @@
+relationship d96de83f-9cbb-485d-bfd1-f4fe50be6d1d
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'Dashboard Summary'.'Last Successful Run UTC'
+	toColumn: LocalDateTable_7a2247bc-f15d-49a8-bb70-7f1708e3c8cd.Date
+
+relationship 08fb3a4b-6157-4a2d-82dd-d4b941c451d0
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'Pipeline Runs'.'Started UTC'
+	toColumn: LocalDateTable_4d2eee2d-463f-4ce5-864e-1cf9c4294a76.Date
+
+relationship 33e0038f-67b8-4f80-99f4-b2f1a0c26044
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'Pipeline Runs'.'Completed UTC'
+	toColumn: LocalDateTable_3c63267b-2045-4c7a-8512-d78ee36be935.Date
+
+relationship c205bb06-22f1-4df7-b454-e665b2b270d7
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'Pipeline Health'.'Last Successful Run UTC'
+	toColumn: LocalDateTable_445a9efa-22f3-4f09-9220-aeea91eedc44.Date
+
+relationship f0a23da5-9b05-496a-89ea-1be96b09e9f2
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'Pipeline Health'.'Last Completed UTC'
+	toColumn: LocalDateTable_18a51cd6-c88d-4e51-b3fa-8304a7f15259.Date
+

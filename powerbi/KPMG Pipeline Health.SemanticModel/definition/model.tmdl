@@ -1,0 +1,25 @@
+model Model
+	culture: en-US
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	discourageImplicitMeasures
+	sourceQueryCulture: en-US
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation PBI_QueryOrder = ["Dashboard Summary","Pipeline Runs","Pipeline Health","Server","Database"]
+
+annotation PBI_ProTooling = ["DevMode"]
+
+annotation __PBI_TimeIntelligenceEnabled = 1
+
+ref table 'Dashboard Summary'
+ref table 'Pipeline Runs'
+ref table 'Pipeline Health'
+ref table DateTableTemplate_b1858ce8-0a67-4012-aaec-0d17ac49b8bd
+ref table LocalDateTable_7a2247bc-f15d-49a8-bb70-7f1708e3c8cd
+ref table LocalDateTable_4d2eee2d-463f-4ce5-864e-1cf9c4294a76
+ref table LocalDateTable_3c63267b-2045-4c7a-8512-d78ee36be935
+ref table LocalDateTable_445a9efa-22f3-4f09-9220-aeea91eedc44
+ref table LocalDateTable_18a51cd6-c88d-4e51-b3fa-8304a7f15259
+
