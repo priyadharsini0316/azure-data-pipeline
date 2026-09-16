@@ -48,4 +48,4 @@ No screenshot should claim Private Endpoints, VNet/NSG, VPN/ExpressRoute, Azure 
 
 📸 SCREENSHOT NEEDED (Priya): Gmail delivery if authorized — Logic App run history and Gmail inbox — same test event in both, with callback/token/header details hidden.
 
-📸 SCREENSHOT NEEDED (Priya): Gmail connector reauthorization — API connections → gmail-kpmg-notify → Edit API connection — Connected with send-mail scope granted; do not show OAuth tokens or callback URLs. Current test run `08584120258021519282617111833CU16` shows 403 insufficient scopes, not delivery.
+📸 SCREENSHOT NEEDED (Priya): Gmail successful send after reauthorization — Logic App run `08584120255427365822838551254CU09` → Send_Gmail_Alert Succeeded, plus received Gmail message if present; hide callback/token/header details. The earlier run `08584120258021519282617111833CU16` failed 403 and must not be used as delivery evidence.
