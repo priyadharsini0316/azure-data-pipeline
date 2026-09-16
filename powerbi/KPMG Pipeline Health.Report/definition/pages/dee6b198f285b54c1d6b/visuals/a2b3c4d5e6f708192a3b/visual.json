@@ -1,0 +1,69 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
+  "name": "a2b3c4d5e6f708192a3b",
+  "position": {
+    "x": 20,
+    "y": 210,
+    "z": 5000,
+    "height": 110,
+    "width": 610,
+    "tabOrder": 5000
+  },
+  "visual": {
+    "visualType": "cardVisual",
+    "query": {
+      "queryState": {
+        "Data": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dashboard Summary"
+                    }
+                  },
+                  "Property": "Pending Schema Changes"
+                }
+              },
+              "queryRef": "Dashboard Summary.Pending Schema Changes",
+              "nativeQueryRef": "Pending Schema Changes"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dashboard Summary"
+                    }
+                  },
+                  "Property": "Reconciliation Failures"
+                }
+              },
+              "queryRef": "Dashboard Summary.Reconciliation Failures",
+              "nativeQueryRef": "Reconciliation Failures"
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "outline": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          },
+          "selector": {
+            "id": "default"
+          }
+        }
+      ]
+    }
+  }
+}
