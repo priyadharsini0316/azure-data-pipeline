@@ -2,7 +2,7 @@
 
 Last updated: 2026-09-16
 
-Status: Design and implementation approved. Live prototype deployed and tested; remaining user actions are final portal screenshots, Power BI refresh/save, PR review, and later cleanup approval.
+Status: Design and implementation approved. Live prototype deployed and tested; a tenant-native read-only Power BI Desktop account is provisioned. Remaining user actions are its first sign-in/password change, final report refresh/save, portal screenshots, PR review, and later cleanup approval.
 
 ## Confirmed directly from KPMG
 

@@ -13,6 +13,7 @@
 - Live scenarios: first load succeeded; incremental update/insert succeeded; idempotent rerun preserved four distinct keys; additive schema change was PENDING then APPROVED as version 2; a second additive change was REJECTED and did not enter the target; a breaking rename produced one independent success, one failed table, four attempts, audit PARTIAL_SUCCESS, and ADF Failed; restoration returned the next run to success.
 - Fixed two defects found by live tests: rejected-hash RFC deduplication and retry-aware latest-outcome aggregation. Also made ADF master status fail after audit finalization when any table failed.
 - Created and validated the local PBIP. PBIR validation returned zero errors and warnings; Desktop opened the report and recognized 3 import tables and 8 measures. Data refresh remains a user organizational-account action because credentials are not embedded and the modeling MCP is intentionally read-only.
+- Created tenant-native work account `powerbi-reader@priyadharsini0316gmail.onmicrosoft.com` after Power BI Desktop rejected Priya's personal Microsoft account. Granted only membership in `db_kpmg_reporting_reader`, verified that the role has only `SELECT` on the `reporting` schema, and stored the first-sign-in temporary password in Key Vault as `powerbi-reporting-user-temporary-password`. No Azure RBAC role or Power BI licence was assigned.
 
 
 ## 2026-09-15 — Azure Free Account plan revision (documentation only)

@@ -55,7 +55,9 @@ Thumbs.db
 *.pbix.autosave
 **/.pbi/localSettings.json
 **/.pbi/cache.abf
+**/.pbi/
 screenshots/*-latest.png
+screenshots/powerbi-open-verification.png
 
 # Test and coverage output
 coverage/

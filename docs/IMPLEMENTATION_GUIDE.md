@@ -66,7 +66,7 @@ Evidence is stored in `audit.ReconciliationResult`, `audit.TableLoadAudit`, and 
 
 ## Power BI
 
-Open `powerbi/KPMG Pipeline Health.pbip`, select **Refresh now**, and authenticate with an organizational account. The model imports only three `reporting` views and contains no secret. The page shows headline health metrics, recent runs, and configured-table status.
+Open `powerbi/KPMG Pipeline Health.pbip`, select **Refresh now**, choose **Microsoft account**, and authenticate with the tenant-native work account `powerbi-reader@priyadharsini0316gmail.onmicrosoft.com`. Retrieve its one-time temporary password from Key Vault secret `powerbi-reporting-user-temporary-password`; change it at first sign-in and never store it in the PBIP or repository. The model imports only three `reporting` views and contains no secret. The page shows headline health metrics, recent runs, and configured-table status.
 
 ## Security
 
@@ -74,6 +74,7 @@ Open `powerbi/KPMG Pipeline Health.pbip`, select **Refresh now**, and authentica
 - ADF uses managed identity and a custom least-privilege executor role.
 - Key Vault uses RBAC and default-deny firewall rules.
 - The reporting service principal can select only `reporting`; direct `curated` access was tested and denied.
+- The interactive Power BI Desktop reader is tenant-native, has no Azure RBAC role, and belongs only to database role `db_kpmg_reporting_reader`, which grants `SELECT` on `reporting`.
 - Its prototype secret expires in two days and is stored in Key Vault. Prefer workload identity or a certificate in production.
 - Internal/external business users consume through Power BI; direct SQL is restricted to technical identities.
 

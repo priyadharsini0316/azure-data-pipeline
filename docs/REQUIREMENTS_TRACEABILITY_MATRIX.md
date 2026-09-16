@@ -21,7 +21,7 @@ Status reflects verified implementation, not intention.
 | RBAC/IAM/MFA/groups | KPMG p4 | Entra-only SQL, Azure RBAC, database roles; group/MFA design | Role assignments and SQL principals | PARTIAL | MFA/group lifecycle is tenant-admin configuration |
 | Service principal/app registration | KPMG p4 | Short-lived reporting app identity | Reporting query allowed; curated denied | COMPLETE | Secret stored in Key Vault |
 | Internal/external access | KPMG p4 | Power BI consumption assumption; technical SQL restriction | Security design and PBIP | PARTIAL | External method was not specified by KPMG |
-| Power BI health reporting | User-approved design | Local PBIP over reporting views | PBIR validator 0 errors/warnings; Desktop binding screenshot | PARTIAL | Final data refresh/save and populated screenshot require Priya's organizational sign-in |
+| Power BI health reporting | User-approved design | Local PBIP over reporting views; tenant-native read-only Desktop identity | PBIR validation and Desktop binding; SQL role grant verified | PARTIAL | Final data refresh/save and populated screenshot require Priya's first sign-in and password change |
 | Dev→Test→Integ→Prod | KPMG diagram/user decision | Parameterized IaC/artifacts and documented promotion | Architecture/deployment docs | PARTIAL | Reduced-cost single environment only |
 | Private endpoints/VPN/ER/Azure Firewall | Production recommendation | Documented only | Security/architecture docs | NOT IMPLEMENTED | Explicitly excluded unless required; end-to-end works without them |
 
