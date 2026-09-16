@@ -1,0 +1,40 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "d78abfd0a7d567a2c48a",
+  "position": { "x": 20, "y": 240, "z": 3000, "height": 455, "width": 610, "tabOrder": 3000 },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Pipeline Runs" } }, "Property": "Started UTC" } }, "queryRef": "Pipeline Runs.Started UTC", "nativeQueryRef": "Started UTC" },
+            { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Pipeline Runs" } }, "Property": "Status" } }, "queryRef": "Pipeline Runs.Status", "nativeQueryRef": "Status" },
+            { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Pipeline Runs" } }, "Property": "Duration Seconds" } }, "queryRef": "Pipeline Runs.Duration Seconds", "nativeQueryRef": "Duration Seconds" },
+            { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Pipeline Runs" } }, "Property": "Successful Table Count" } }, "queryRef": "Pipeline Runs.Successful Table Count", "nativeQueryRef": "Successful Table Count" },
+            { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Pipeline Runs" } }, "Property": "Failed Table Count" } }, "queryRef": "Pipeline Runs.Failed Table Count", "nativeQueryRef": "Failed Table Count" }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [{
+          "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Pipeline Runs" } }, "Property": "Started UTC" } },
+          "direction": "Descending"
+        }],
+        "isDefaultSort": false
+      }
+    },
+    "objects": {
+      "columnHeaders": [{ "properties": {
+        "columnAdjustment": { "expr": { "Literal": { "Value": "'growToFit'" } } },
+        "autoSizeColumnWidth": { "expr": { "Literal": { "Value": "true" } } }
+      } }]
+    },
+    "visualContainerObjects": {
+      "title": [{ "properties": {
+        "show": { "expr": { "Literal": { "Value": "true" } } },
+        "text": { "expr": { "Literal": { "Value": "'Recent Pipeline Runs'" } } }
+      } }]
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "0e55235b2a45999934f0",
+  "position": { "x": 650, "y": 240, "z": 4000, "height": 455, "width": 610, "tabOrder": 4000 },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Pipeline Health" } }, "Property": "Source Object" } }, "queryRef": "Pipeline Health.Source Object", "nativeQueryRef": "Source Object" },
+            { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Pipeline Health" } }, "Property": "Load" } }, "queryRef": "Pipeline Health.Load", "nativeQueryRef": "Load" },
+            { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Pipeline Health" } }, "Property": "Load Type" } }, "queryRef": "Pipeline Health.Load Type", "nativeQueryRef": "Load Type" },
+            { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Pipeline Health" } }, "Property": "Last Run Status" } }, "queryRef": "Pipeline Health.Last Run Status", "nativeQueryRef": "Last Run Status" },
+            { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Pipeline Health" } }, "Property": "Approved Schema Version" } }, "queryRef": "Pipeline Health.Approved Schema Version", "nativeQueryRef": "Approved Schema Version" },
+            { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Pipeline Health" } }, "Property": "Pending Schema Changes" } }, "queryRef": "Pipeline Health.Pending Schema Changes", "nativeQueryRef": "Pending Schema Changes" }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "columnHeaders": [{ "properties": {
+        "columnAdjustment": { "expr": { "Literal": { "Value": "'growToFit'" } } },
+        "autoSizeColumnWidth": { "expr": { "Literal": { "Value": "true" } } }
+      } }]
+    },
+    "visualContainerObjects": {
+      "title": [{ "properties": {
+        "show": { "expr": { "Literal": { "Value": "true" } } },
+        "text": { "expr": { "Literal": { "Value": "'Configured Table Health'" } } }
+      } }]
+    }
+  }
+}

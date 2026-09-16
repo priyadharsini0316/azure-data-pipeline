@@ -1,0 +1,75 @@
+/// Configuration and latest-load health at one row per configured source table.
+table 'Pipeline Health'
+
+	column 'Configuration ID'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: ConfigId
+
+	/// Qualified source object registered in configuration.
+	column 'Source Object'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: SourceObject
+
+	/// Qualified curated target object.
+	column 'Target Object'
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: TargetObject
+
+	/// Literal Yes or No processing eligibility from configuration.
+	column Load
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Load
+
+	/// FULL or WATERMARK load strategy.
+	column 'Load Type'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: LoadType
+
+	/// Latest table execution outcome.
+	column 'Last Run Status'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: LastRunStatus
+
+	column 'Last Successful Run UTC'
+		dataType: dateTime
+		isHidden
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: LastSuccessfulRunUtc
+
+	/// Most recently approved source-schema version.
+	column 'Approved Schema Version'
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: ApprovedSchemaVersion
+
+	/// Count of schema decisions awaiting approval for the table.
+	column 'Pending Schema Changes'
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: PendingSchemaChanges
+
+	column 'Last Completed UTC'
+		dataType: dateTime
+		isHidden
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: LastCompletedUtc
+
+	partition 'Pipeline Health' = m
+		mode: import
+		source =
+			let
+				Source = Sql.Database(#"Server", #"Database", [CreateNavigationProperties=false]),
+				PipelineHealth = Source{[Schema="reporting", Item="vw_PipelineHealth"]}[Data]
+			in
+				PipelineHealth

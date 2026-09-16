@@ -1,0 +1,113 @@
+/// Single-row operational summary used for headline monitoring measures.
+table 'Dashboard Summary'
+
+	/// Number of source tables registered in pipeline configuration.
+	measure 'Total Configured Tables' = MAX('Dashboard Summary'[Total Configured Tables Value])
+		formatString: #,##0
+
+	/// Number of configured tables currently eligible for processing.
+	measure 'Enabled Tables' = MAX('Dashboard Summary'[Enabled Tables Value])
+		formatString: #,##0
+
+	/// Count of fully successful master-pipeline runs.
+	measure 'Successful Runs' = MAX('Dashboard Summary'[Successful Runs Value])
+		formatString: #,##0
+
+	/// Count of failed or partially successful master-pipeline runs.
+	measure 'Failed or Partial Runs' = MAX('Dashboard Summary'[Failed or Partial Runs Value])
+		formatString: #,##0
+
+	/// Total source rows validated by successful table-load attempts.
+	measure 'Rows Processed' = MAX('Dashboard Summary'[Rows Processed Value])
+		formatString: #,##0
+
+	/// Number of schema-change decisions currently awaiting approval.
+	measure 'Pending Schema Changes' = MAX('Dashboard Summary'[Pending Schema Changes Value])
+		formatString: #,##0
+
+	/// Number of reconciliation checks that returned FAIL.
+	measure 'Reconciliation Failures' = MAX('Dashboard Summary'[Reconciliation Failures Value])
+		formatString: #,##0
+
+	/// Average completed master-pipeline duration in seconds.
+	measure 'Average Duration Seconds' = MAX('Dashboard Summary'[Average Duration Seconds Value])
+		formatString: #,##0.00
+
+	column 'Total Configured Tables Value'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: TotalConfiguredTables
+
+	column 'Enabled Tables Value'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: EnabledTables
+
+	column 'Successful Runs Value'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: SuccessfulRuns
+
+	column 'Failed or Partial Runs Value'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: FailedOrPartialRuns
+
+	column 'Rows Processed Value'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: RowsProcessed
+
+	column 'Last Successful Run UTC'
+		dataType: dateTime
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: LastSuccessfulRunUtc
+
+	column 'Schema Changes Detected Value'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: SchemaChangesDetected
+
+	column 'Pending Schema Changes Value'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: PendingSchemaChanges
+
+	column 'Reconciliation Failures Value'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: ReconciliationFailures
+
+	column 'Average Duration Seconds Value'
+		dataType: decimal
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: AverageDurationSeconds
+
+	partition 'Dashboard Summary' = m
+		mode: import
+		source =
+			let
+				Source = Sql.Database(#"Server", #"Database", [CreateNavigationProperties=false]),
+				DashboardSummary = Source{[Schema="reporting", Item="vw_PipelineDashboardSummary"]}[Data]
+			in
+				DashboardSummary

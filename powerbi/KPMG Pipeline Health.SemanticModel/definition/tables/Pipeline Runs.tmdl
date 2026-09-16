@@ -1,0 +1,80 @@
+/// Master-pipeline execution history at one row per ADF run.
+table 'Pipeline Runs'
+
+	column 'Run Audit ID'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: PipelineRunAuditId
+
+	/// Azure Data Factory pipeline run identifier used for traceability.
+	column 'Run ID'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: AdfPipelineRunId
+
+	/// Metadata-driven master pipeline name.
+	column 'Pipeline Name'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: PipelineName
+
+	/// UTC start timestamp recorded by the audit framework.
+	column 'Started UTC'
+		dataType: dateTime
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: StartedUtc
+
+	/// UTC completion timestamp recorded by the audit framework.
+	column 'Completed UTC'
+		dataType: dateTime
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: CompletedUtc
+
+	/// Elapsed master-pipeline time in seconds.
+	column 'Duration Seconds'
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: DurationSeconds
+
+	/// Final audit status: SUCCESS, PARTIAL_SUCCESS, or FAILURE.
+	column Status
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Status
+
+	/// Configured tables eligible for this run.
+	column 'Enabled Table Count'
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: EnabledTableCount
+
+	/// Configured tables whose latest attempt succeeded.
+	column 'Successful Table Count'
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: SuccessfulTableCount
+
+	/// Configured tables whose latest attempt failed.
+	column 'Failed Table Count'
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: FailedTableCount
+
+	column Message
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: Message
+
+	partition 'Pipeline Runs' = m
+		mode: import
+		source =
+			let
+				Source = Sql.Database(#"Server", #"Database", [CreateNavigationProperties=false]),
+				PipelineRuns = Source{[Schema="reporting", Item="vw_RecentPipelineRuns"]}[Data]
+			in
+				PipelineRuns
