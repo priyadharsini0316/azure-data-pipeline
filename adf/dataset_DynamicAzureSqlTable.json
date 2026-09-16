@@ -1,0 +1,20 @@
+{
+  "properties": {
+    "annotations": ["Parameterized dataset; no table is hard-coded"],
+    "linkedServiceName": {
+      "referenceName": "AzureSqlPrototype",
+      "type": "LinkedServiceReference"
+    },
+    "parameters": {
+      "SchemaName": { "type": "string" },
+      "TableName": { "type": "string" }
+    },
+    "type": "AzureSqlTable",
+    "schema": [],
+    "typeProperties": {
+      "schema": { "value": "@dataset().SchemaName", "type": "Expression" },
+      "table": { "value": "@dataset().TableName", "type": "Expression" }
+    }
+  }
+}
+

@@ -1,0 +1,14 @@
+name: kpmg-data-pipeline
+metadata:
+  template: kpmg-data-pipeline@0.1.0
+infra:
+  provider: bicep
+  path: infra
+hooks:
+  postprovision:
+    windows:
+      shell: pwsh
+      run: ./scripts/postprovision.ps1
+      interactive: true
+      continueOnError: false
+
