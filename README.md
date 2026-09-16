@@ -11,7 +11,7 @@
 
 **Status:** live and verified in one Azure environment. Production networking and multi-environment promotion are designed, not provisioned.
 
-**Contents:** [Problem](#problem) · [Solution](#solution) · [Architecture](#architecture) · [Pipeline flow](#pipeline-flow) · [Requirements](#requirements-traceability) · [Live results](#live-results) · [Dashboard](#dashboard) · [Documents](#documents) · [Repo map](#repo-map) · [Quick start](#quick-start)
+**Contents:** [Problem](#problem) · [Solution](#solution) · [Architecture](#architecture) · [Pipeline flow](#pipeline-flow) · [Requirements](docs/REQUIREMENTS_TRACEABILITY_MATRIX.md) · [Live results](#live-results) · [Dashboard](#dashboard) · [Documents](#documents) · [Repo map](#repo-map) · [Quick start](#quick-start)
 
 ---
 
@@ -136,6 +136,7 @@ Screenshots and run IDs: [docs/EVIDENCE.md](docs/EVIDENCE.md)
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Diagrams, components, security, IP plan, production design |
 | [DESIGN_DECISIONS.md](docs/DESIGN_DECISIONS.md) | Choices, trade-offs, flow issues in case study, limitations |
 | [CICD_PROMOTION.md](docs/CICD_PROMOTION.md) | PR checks and Dev → Prod promotion |
+| [REQUIREMENTS_TRACEABILITY_MATRIX.md](docs/REQUIREMENTS_TRACEABILITY_MATRIX.md) | Every KPMG requirement → how it was met → evidence |
 | [EVIDENCE.md](docs/EVIDENCE.md) | Screenshots grouped by topic |
 
 ## Repo map
@@ -164,43 +165,3 @@ azd provision                 # infra + SQL (scripts/postprovision.ps1)
 
 - Trigger `MasterMetadataDriven` in ADF Studio.
 - Replay the scenarios with `sql/demo/00`–`07` (reset, incremental, pending, approve, reject, breaking, restore).
-
-## Requirements traceability
-
-✅ done and verified live · 🟡 partly done or designed only
-
-### Pipeline
-
-| Requirement | Status | How | Evidence |
-|---|---|---|---|
-| Dynamic, config-driven pipeline | ✅ | Lookup → ForEach → one child pipeline | [ADF pipelines](docs/EVIDENCE.md#data-factory) |
-| `Load = Yes` rows loaded, `No` skipped | ✅ | Literal `Load` filter | [Config table](docs/EVIDENCE.md#sql-results) |
-| Initial and subsequent loads | ✅ | First-load detection; FULL / WATERMARK | [Runs 1–3](docs/EVIDENCE.md#live-runs) |
-| Step 1.1: create schema + RFC on first load | ✅ | Schema v1 + `INITIAL_LOAD` approval | [RFC table](docs/EVIDENCE.md#sql-results) |
-| Step 4: detect schema change | ✅ | SHA-256 column fingerprint | [RFC table](docs/EVIDENCE.md#sql-results) |
-| Step 4.2: alert + approval | ✅ | RFC `PENDING` + Gmail alert | [Alerts](docs/EVIDENCE.md#notifications) |
-| Step 5: approved → new schema | ✅ | `rfc.usp_DecideSchemaChange`, version 2 | [Curated](docs/EVIDENCE.md#sql-results) |
-| Step 5.1: rejected → old schema only | ✅ | Approved columns reused | [Run 5](docs/EVIDENCE.md#live-runs) |
-| Step 2: source vs Dev/Test match | ✅ | Gate 1 on `stg` | [Gates](docs/EVIDENCE.md#sql-results) |
-| Step 3: Dev/Test vs Integ/Prod match | 🟡 | Gate 2 `stg` vs `curated`, in one environment | [Gates](docs/EVIDENCE.md#sql-results) |
-| Step 3.1: success message | ✅ | `TABLE_SUCCESS` email | [Alerts](docs/EVIDENCE.md#notifications) |
-| Retry + alert on failure | ✅ | Retry ×3; `TABLE_FAILURE` email | [Run 6](docs/EVIDENCE.md#live-runs) |
-| Azure SQL + Data Factory | ✅ | Deployed with Bicep | [Resources](docs/EVIDENCE.md#azure-resources) |
-| Plain-English explanation | ✅ | README problem and solution sections | [README](#problem) |
-| Call out process-flow issues | ✅ | 10 issues + fixes | [Design decisions](docs/DESIGN_DECISIONS.md#issues-found-in-kpmgs-process-flow) |
-| Screenshots of each step | ✅ | Evidence gallery | [EVIDENCE.md](docs/EVIDENCE.md) |
-
-### Access and control
-
-| Requirement | Status | How | Evidence |
-|---|---|---|---|
-| Network configuration (VPN / Direct Connect) | 🟡 | Designed; prototype uses narrow public firewalls | [Architecture](docs/ARCHITECTURE.md#production-design-not-provisioned) |
-| IP addressing | 🟡 | Non-overlapping plan, not deployed | [IP plan](docs/ARCHITECTURE.md#ip-address-plan-non-overlapping) |
-| Firewalls | ✅ | SQL + Key Vault allow selected networks only | [Networking](docs/EVIDENCE.md#azure-resources) |
-| RBAC | ✅ | Group roles on the resource group; SQL database roles | [Key Vault IAM](docs/EVIDENCE.md#identity-and-access) |
-| IAM + MFA | ✅ | Entra-only SQL; security defaults on | [MFA](docs/EVIDENCE.md#identity-and-access) |
-| Security groups | ✅ | Admins, Developers, Support, Report readers | [Groups](docs/EVIDENCE.md#identity-and-access) |
-| Permissions to groups | ✅ | Roles assigned to groups only | [Key Vault IAM](docs/EVIDENCE.md#identity-and-access) |
-| Service principal via app registration | ✅ | Secret in Key Vault; reads `reporting` only | [App registration](docs/EVIDENCE.md#identity-and-access) |
-| Internal and external users | 🟡 | Read-only report user; external guests via Entra B2B (designed) | [Architecture](docs/ARCHITECTURE.md#security) |
-| Dev → Test → Integ → Prod | 🟡 | PR checks live; promotion designed | [CI/CD](docs/CICD_PROMOTION.md) |
