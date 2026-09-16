@@ -1,22 +1,28 @@
 /// Master-pipeline execution history at one row per ADF run.
 table 'Pipeline Runs'
+	lineageTag: cc6521e8-36ba-4a52-8250-c56bb2afafe6
 
 	column 'Run Audit ID'
 		dataType: int64
 		isHidden
 		isAvailableInMdx: false
-		summarizeBy: none
+		lineageTag: c04c2691-1651-4241-b4f6-19ad16714b02
+		summarizeBy: count
 		sourceColumn: PipelineRunAuditId
+
+		annotation SummarizationSetBy = Automatic
 
 	/// Azure Data Factory pipeline run identifier used for traceability.
 	column 'Run ID'
 		dataType: string
+		lineageTag: 91aab3f9-207f-42ca-be97-e546f64ea7c5
 		summarizeBy: none
 		sourceColumn: AdfPipelineRunId
 
 	/// Metadata-driven master pipeline name.
 	column 'Pipeline Name'
 		dataType: string
+		lineageTag: 757cb102-202c-4b55-9434-852b1a3b409a
 		summarizeBy: none
 		sourceColumn: PipelineName
 
@@ -24,57 +30,84 @@ table 'Pipeline Runs'
 	column 'Started UTC'
 		dataType: dateTime
 		formatString: General Date
+		lineageTag: bd8000a1-a3e7-43d1-a8fc-d22c9f91ebc4
 		summarizeBy: none
 		sourceColumn: StartedUtc
+
+		variation Variation
+			isDefault
+			relationship: 08fb3a4b-6157-4a2d-82dd-d4b941c451d0
+			defaultHierarchy: LocalDateTable_4d2eee2d-463f-4ce5-864e-1cf9c4294a76.'Date Hierarchy'
 
 	/// UTC completion timestamp recorded by the audit framework.
 	column 'Completed UTC'
 		dataType: dateTime
 		formatString: General Date
+		lineageTag: 32a83168-8e0f-41dd-aa54-92e651f0bbb2
 		summarizeBy: none
 		sourceColumn: CompletedUtc
+
+		variation Variation
+			isDefault
+			relationship: 33e0038f-67b8-4f80-99f4-b2f1a0c26044
+			defaultHierarchy: LocalDateTable_3c63267b-2045-4c7a-8512-d78ee36be935.'Date Hierarchy'
 
 	/// Elapsed master-pipeline time in seconds.
 	column 'Duration Seconds'
 		dataType: int64
-		summarizeBy: none
+		lineageTag: bd5c43a2-413e-4511-92cf-b6f170d58417
+		summarizeBy: sum
 		sourceColumn: DurationSeconds
+
+		annotation SummarizationSetBy = Automatic
 
 	/// Final audit status: SUCCESS, PARTIAL_SUCCESS, or FAILURE.
 	column Status
 		dataType: string
+		lineageTag: c2b867f7-5ca4-4f94-aeb3-361692dea3e2
 		summarizeBy: none
 		sourceColumn: Status
 
 	/// Configured tables eligible for this run.
 	column 'Enabled Table Count'
 		dataType: int64
-		summarizeBy: none
+		lineageTag: 9ff0ee42-31c2-4028-9e9e-73e7cb2cd4de
+		summarizeBy: sum
 		sourceColumn: EnabledTableCount
+
+		annotation SummarizationSetBy = Automatic
 
 	/// Configured tables whose latest attempt succeeded.
 	column 'Successful Table Count'
 		dataType: int64
-		summarizeBy: none
+		lineageTag: a6aa3559-a3d3-4202-83aa-f1d34b642f06
+		summarizeBy: sum
 		sourceColumn: SuccessfulTableCount
+
+		annotation SummarizationSetBy = Automatic
 
 	/// Configured tables whose latest attempt failed.
 	column 'Failed Table Count'
 		dataType: int64
-		summarizeBy: none
+		lineageTag: d538f053-2d0c-4ac6-9cd1-6321d421a9e8
+		summarizeBy: sum
 		sourceColumn: FailedTableCount
+
+		annotation SummarizationSetBy = Automatic
 
 	column Message
 		dataType: string
 		isHidden
+		lineageTag: 4ff24deb-e366-401c-9252-ce9387babd18
 		summarizeBy: none
 		sourceColumn: Message
 
 	partition 'Pipeline Runs' = m
 		mode: import
 		source =
-			let
-				Source = Sql.Database(#"Server", #"Database", [CreateNavigationProperties=false]),
-				PipelineRuns = Source{[Schema="reporting", Item="vw_RecentPipelineRuns"]}[Data]
-			in
-				PipelineRuns
+				let
+					Source = Sql.Database(#"Server", #"Database", [CreateNavigationProperties=false]),
+					PipelineRuns = Source{[Schema="reporting", Item="vw_RecentPipelineRuns"]}[Data]
+				in
+					PipelineRuns
+

@@ -1,16 +1,21 @@
 /// Configuration and latest-load health at one row per configured source table.
 table 'Pipeline Health'
+	lineageTag: 27241cee-db4c-4af6-b588-7395b102069f
 
 	column 'Configuration ID'
 		dataType: int64
 		isHidden
 		isAvailableInMdx: false
-		summarizeBy: none
+		lineageTag: 1b8da44e-3905-4786-8c17-7b112e9dac7f
+		summarizeBy: count
 		sourceColumn: ConfigId
+
+		annotation SummarizationSetBy = Automatic
 
 	/// Qualified source object registered in configuration.
 	column 'Source Object'
 		dataType: string
+		lineageTag: f380b904-a9d0-4d6b-a3ef-f90813701ac9
 		summarizeBy: none
 		sourceColumn: SourceObject
 
@@ -18,24 +23,28 @@ table 'Pipeline Health'
 	column 'Target Object'
 		dataType: string
 		isHidden
+		lineageTag: 69ecd4dc-26f5-4828-a47e-7b4f08cd2d62
 		summarizeBy: none
 		sourceColumn: TargetObject
 
 	/// Literal Yes or No processing eligibility from configuration.
 	column Load
 		dataType: string
+		lineageTag: ac167b64-fa9b-4370-bcbb-51ee0aaab4d0
 		summarizeBy: none
 		sourceColumn: Load
 
 	/// FULL or WATERMARK load strategy.
 	column 'Load Type'
 		dataType: string
+		lineageTag: 33c44ed6-f67e-4a3b-b503-8b3dbc38a411
 		summarizeBy: none
 		sourceColumn: LoadType
 
 	/// Latest table execution outcome.
 	column 'Last Run Status'
 		dataType: string
+		lineageTag: 7ef6c194-f97c-4d37-a1c5-5c7cc622f910
 		summarizeBy: none
 		sourceColumn: LastRunStatus
 
@@ -43,33 +52,54 @@ table 'Pipeline Health'
 		dataType: dateTime
 		isHidden
 		formatString: General Date
+		lineageTag: eb089a32-a9ea-41ae-a4f9-26aa6fa0b86f
 		summarizeBy: none
 		sourceColumn: LastSuccessfulRunUtc
+
+		variation Variation
+			isDefault
+			relationship: c205bb06-22f1-4df7-b454-e665b2b270d7
+			defaultHierarchy: LocalDateTable_445a9efa-22f3-4f09-9220-aeea91eedc44.'Date Hierarchy'
 
 	/// Most recently approved source-schema version.
 	column 'Approved Schema Version'
 		dataType: int64
-		summarizeBy: none
+		lineageTag: f45b8e43-e2a4-4c98-a356-697c574ae3a6
+		summarizeBy: sum
 		sourceColumn: ApprovedSchemaVersion
+
+		annotation SummarizationSetBy = Automatic
 
 	/// Count of schema decisions awaiting approval for the table.
 	column 'Pending Schema Changes'
 		dataType: int64
-		summarizeBy: none
+		lineageTag: b55babc7-38a3-41cc-905b-8938eb59859c
+		summarizeBy: sum
 		sourceColumn: PendingSchemaChanges
+
+		annotation SummarizationSetBy = Automatic
 
 	column 'Last Completed UTC'
 		dataType: dateTime
 		isHidden
 		formatString: General Date
+		lineageTag: 965defb0-c4a7-43a6-88a2-d45492da8ba4
 		summarizeBy: none
 		sourceColumn: LastCompletedUtc
+
+		variation Variation
+			isDefault
+			relationship: f0a23da5-9b05-496a-89ea-1be96b09e9f2
+			defaultHierarchy: LocalDateTable_18a51cd6-c88d-4e51-b3fa-8304a7f15259.'Date Hierarchy'
 
 	partition 'Pipeline Health' = m
 		mode: import
 		source =
-			let
-				Source = Sql.Database(#"Server", #"Database", [CreateNavigationProperties=false]),
-				PipelineHealth = Source{[Schema="reporting", Item="vw_PipelineHealth"]}[Data]
-			in
-				PipelineHealth
+				let
+					Source = Sql.Database(#"Server", #"Database", [CreateNavigationProperties=false]),
+					PipelineHealth = Source{[Schema="reporting", Item="vw_PipelineHealth"]}[Data]
+				in
+					PipelineHealth
+
+	annotation PBI_ResultType = Table
+

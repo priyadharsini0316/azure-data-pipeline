@@ -1,24 +1,185 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
   "name": "7573098ff214dff10d6e",
-  "position": { "x": 20, "y": 74, "z": 2000, "height": 150, "width": 1240, "tabOrder": 2000 },
+  "position": {
+    "x": 20,
+    "y": 74,
+    "z": 2000,
+    "height": 150,
+    "width": 1240,
+    "tabOrder": 2000
+  },
   "visual": {
     "visualType": "cardVisual",
     "query": {
       "queryState": {
         "Data": {
           "projections": [
-            { "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "Dashboard Summary" } }, "Property": "Total Configured Tables" } }, "queryRef": "Dashboard Summary.Total Configured Tables", "nativeQueryRef": "Total Configured Tables" },
-            { "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "Dashboard Summary" } }, "Property": "Enabled Tables" } }, "queryRef": "Dashboard Summary.Enabled Tables", "nativeQueryRef": "Enabled Tables" },
-            { "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "Dashboard Summary" } }, "Property": "Successful Runs" } }, "queryRef": "Dashboard Summary.Successful Runs", "nativeQueryRef": "Successful Runs" },
-            { "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "Dashboard Summary" } }, "Property": "Failed or Partial Runs" } }, "queryRef": "Dashboard Summary.Failed or Partial Runs", "nativeQueryRef": "Failed or Partial Runs" },
-            { "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "Dashboard Summary" } }, "Property": "Rows Processed" } }, "queryRef": "Dashboard Summary.Rows Processed", "nativeQueryRef": "Rows Processed" }
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dashboard Summary"
+                    }
+                  },
+                  "Property": "Total Configured Tables"
+                }
+              },
+              "queryRef": "Dashboard Summary.Total Configured Tables",
+              "nativeQueryRef": "Total Configured Tables"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dashboard Summary"
+                    }
+                  },
+                  "Property": "Enabled Tables"
+                }
+              },
+              "queryRef": "Dashboard Summary.Enabled Tables",
+              "nativeQueryRef": "Enabled Tables"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dashboard Summary"
+                    }
+                  },
+                  "Property": "Successful Runs"
+                }
+              },
+              "queryRef": "Dashboard Summary.Successful Runs",
+              "nativeQueryRef": "Successful Runs"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dashboard Summary"
+                    }
+                  },
+                  "Property": "Failed or Partial Runs"
+                }
+              },
+              "queryRef": "Dashboard Summary.Failed or Partial Runs",
+              "nativeQueryRef": "Failed or Partial Runs"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Dashboard Summary"
+                    }
+                  },
+                  "Property": "Rows Processed"
+                }
+              },
+              "queryRef": "Dashboard Summary.Rows Processed",
+              "nativeQueryRef": "Rows Processed"
+            }
           ]
         }
       }
     },
     "objects": {
-      "outline": [{ "properties": { "show": { "expr": { "Literal": { "Value": "false" } } } }, "selector": { "id": "default" } }]
+      "outline": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          },
+          "selector": {
+            "id": "default"
+          }
+        }
+      ]
     }
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "4d5db164210b534ac0d6",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Dashboard Summary"
+              }
+            },
+            "Property": "Total Configured Tables"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "f8f4789fc4dd00102b0d",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Dashboard Summary"
+              }
+            },
+            "Property": "Enabled Tables"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "80bfee5bc4d665d6a268",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Dashboard Summary"
+              }
+            },
+            "Property": "Successful Runs"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "3a307e5d1391040a2009",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Dashboard Summary"
+              }
+            },
+            "Property": "Failed or Partial Runs"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "e96daea7899330ab045c",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Dashboard Summary"
+              }
+            },
+            "Property": "Rows Processed"
+          }
+        },
+        "type": "Advanced"
+      }
+    ]
   }
 }
