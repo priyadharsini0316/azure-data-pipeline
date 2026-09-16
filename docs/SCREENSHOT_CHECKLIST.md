@@ -28,3 +28,9 @@ Never fabricate evidence. Redact tenant/subscription/object IDs, personal IP/ema
 | NEEDED | Azure Cost Management → Cost analysis | Resource-group filtered cost | Observed prototype cost, not an estimate |
 
 No screenshot should claim Private Endpoints, VNet/NSG, VPN/ExpressRoute, Azure Firewall, SHIR, Log Analytics, Storage, separate environments, or paid Power BI/Fabric capacity; those were not provisioned.
+
+📸 SCREENSHOT NEEDED (Priya): four KPMG security groups — Entra ID → Groups → All groups, filter grp-kpmg — group names visible; redact object IDs.
+
+📸 SCREENSHOT NEEDED (Priya): Power BI reader group membership — Entra ID → Groups → grp-kpmg-report-readers → Members — reader account visible; redact identifiers.
+
+📸 SCREENSHOT NEEDED (Priya): resource-group role assignments — rg-kpmg-kpmg-prototype → Access control (IAM) → Role assignments — admin/developer Contributor and support Reader; no report-reader RG assignment.

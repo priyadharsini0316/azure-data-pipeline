@@ -1,6 +1,15 @@
 # Security Design
 
-**Status:** proposed controls awaiting approval; not proof of configuration.
+**Status:** live prototype controls below are separately identified from production recommendations. Group-based SQL reporting access requires a reader login verification before removing the direct membership.
+
+| Entra security group | Azure RG role | Azure SQL role | Purpose / live status |
+|---|---|---|---|
+| `grp-kpmg-admins` | Contributor | None | Administration; group and RG assignment created. |
+| `grp-kpmg-developers` | Contributor | None | Prototype development; group and RG assignment created. |
+| `grp-kpmg-support` | Reader | None | Resource monitoring; group and RG assignment created. |
+| `grp-kpmg-report-readers` | None | `db_kpmg_reporting_reader` | Power BI reader is a group member; SQL group user and role membership verified. Effective reader-token query still pending. |
+
+No individual members are added to the first three groups; their RBAC grants confer no access until an authorized owner assigns members. Azure RBAC does not grant Azure SQL data-plane SELECT. The reporting SQL role grants SELECT on `reporting` only. Do not remove the reader's direct SQL role membership until an actual reader-token query succeeds through the group (token refresh may be needed).
 
 ## Implemented prototype controls
 
