@@ -11,7 +11,7 @@ Status reflects verified implementation, not intention.
 | Pending/rejected loads old schema | KPMG p2 steps 4.1/5.1 | Approved projection retained when safe | Pending/rejected live table-load audit SUCCESS | COMPLETE | New source column absent from target |
 | Approval adopts schema | KPMG p2 RFC flow | `usp_DecideSchemaChange` and schema history | RegionCode appears after approval; version 2 | COMPLETE | SQL-backed workflow is a prototype choice |
 | Breaking change safety | KPMG p2 | Missing approved column blocks table | Failed ADF run + 4 attempts + untouched target | COMPLETE | Independent table still succeeds |
-| Data match Dev/Test and Integ/Prod | KPMG p2 | Source-to-stg Gate 1 and stg-to-curated Gate 2 in the one-environment prototype | `sql/003_stored_procedures.sql`; new-gate live run IDs pending | PARTIAL | No physical Dev/Test/Integ/Prod; new two-gate procedure not yet verified live |
+| Data match Dev/Test and Integ/Prod | KPMG p2 | Source-to-stg Gate 1 and stg-to-curated Gate 2 in the one-environment prototype | `sql/003_stored_procedures.sql`; live run IDs and gate counts in deployment log | PARTIAL | Two gates verified live, but no physical Dev/Test/Integ/Prod |
 | Success/failure and retry | KPMG p1 expected outcome | Retry=3, audits, Logic App notification | ADF failure/recovery and Logic run history | COMPLETE | Initial plus 3 retry attempts |
 | Screenshots for setup | KPMG p1/p4 | Checklist and genuine Power BI capture | `screenshots/`; checklist | PARTIAL | Portal captures still require final user capture |
 | Azure SQL or Fabric | KPMG p1 | Azure SQL + ADF | Deployed resource inventory | COMPLETE | Fabric not required |
@@ -22,9 +22,9 @@ Status reflects verified implementation, not intention.
 | Service principal/app registration | KPMG p4 | Short-lived reporting app identity | Reporting query allowed; curated denied | COMPLETE | Secret stored in Key Vault |
 | Internal/external access | KPMG p4 | Power BI consumption assumption; technical SQL restriction | Security design and PBIP | PARTIAL | External method was not specified by KPMG |
 | Power BI health reporting | User-approved design | Existing local PBIP plus deployed approval, gate, retry and notification views | SQL view deployment; genuine earlier populated Desktop screenshots | PARTIAL | New pages not authored; Desktop has unsaved changes; refresh and PBIR validation pending |
-| First-load RFC | KPMG p2 step 1.1 / user clarification | Approved INITIAL_LOAD request in revised procedure | SQL source; first-load live run pending | PARTIAL | New procedure not yet deployed/tested |
+| First-load RFC | KPMG p2 step 1.1 / user clarification | Approved INITIAL_LOAD request in revised procedure | Run `9d64382f-b1f2-11f1-a6a0-ec91616f91e2`; two APPROVED RFC rows with DecisionBy INITIAL_LOAD | COMPLETE | First load and both gates verified live |
 | Notification email | KPMG p1/p2 success/schema alert; user enhancement | ADF/Logic App 202 run history; Gmail connection pending | Existing Logic run history; no inbox proof | PARTIAL | Never claim email delivery until connector authorization and inbox verification |
-| Pull-request CI checks | User enhancement | JSON, Bicep, static, gitleaks workflow | `.github/workflows/ci.yml`; PR check pending | PARTIAL | Committed/pushed, but remote CI result must be inspected |
+| Pull-request CI checks | User enhancement | JSON, Bicep, static, gitleaks workflow | `.github/workflows/ci.yml`; GitHub PR #1 validate check success on head `498bcd3` | COMPLETE | Later commits require a fresh CI recheck before merge |
 | Dev→Test→Integ→Prod | KPMG diagram/user decision | Parameterized IaC/artifacts and documented promotion | Architecture/deployment docs | PARTIAL | Reduced-cost single environment only |
 | Private endpoints/VPN/ER/Azure Firewall | Production recommendation | Documented only | Security/architecture docs | NOT IMPLEMENTED | Explicitly excluded unless required; end-to-end works without them |
 

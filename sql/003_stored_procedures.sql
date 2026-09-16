@@ -135,7 +135,7 @@ BEGIN
       IF NOT EXISTS(SELECT 1 FROM rfc.SchemaHistory WHERE ConfigId=@ConfigId AND SchemaVersion=1)
         INSERT rfc.SchemaHistory(ConfigId,SchemaVersion,SchemaHash,ColumnList,SchemaDefinition,ApprovalStatus,ApprovedBy,ApprovedUtc)
         VALUES(@ConfigId,1,@CurrentHash,@CurrentColumns,@SchemaDefinition,'APPROVED','INITIAL_LOAD',SYSUTCDATETIME());
-      IF NOT EXISTS(SELECT 1 FROM rfc.SchemaChangeRequest WHERE ConfigId=@ConfigId AND DetectedSchemaHash=@CurrentHash)
+      IF NOT EXISTS(SELECT 1 FROM rfc.SchemaChangeRequest WHERE ConfigId=@ConfigId AND DetectedSchemaHash=@CurrentHash AND DecisionBy='INITIAL_LOAD')
         INSERT rfc.SchemaChangeRequest(ConfigId,DetectedSchemaHash,PreviousSchemaHash,DetectedColumnList,DetectedSchemaDefinition,
           ChangeSummary,Compatibility,Status,DecisionUtc,DecisionBy,DecisionNotes)
         VALUES(@ConfigId,@CurrentHash,NULL,@CurrentColumns,@SchemaDefinition,
@@ -257,7 +257,7 @@ BEGIN
       -- Publish and Gate 2 are one transaction. Failed Gate 2 results are held
       -- in a table variable and persisted by CATCH after the rollback.
       BEGIN TRAN;
-      IF @LoadType='FULL'
+      IF @LoadType='FULL' OR @IsFirst=1
         SET @Sql=N'DELETE FROM '+@TargetObject+N'; INSERT '+@TargetObject+N'('+@ApprovedColumns+N') SELECT '+@ApprovedColumns+N' FROM '+@StageObject;
       ELSE
         SET @Sql=N'DELETE t FROM '+@TargetObject+N' t JOIN '+@StageObject+N' s ON t.'+QUOTENAME(@PrimaryKey)+N'=s.'+QUOTENAME(@PrimaryKey)+
@@ -280,7 +280,7 @@ BEGIN
       ('STAGE_KEYS_PUBLISHED','0',CONVERT(varchar(30),@MissingPublished),CASE WHEN @MissingPublished=0 THEN 'PASS' ELSE 'FAIL' END,'Each staged key appears in curated.'),
       ('DUPLICATE_PRIMARY_KEY','0',CONVERT(varchar(30),@DuplicateCount),CASE WHEN @DuplicateCount=0 THEN 'PASS' ELSE 'FAIL' END,'Curated key uniqueness.'),
       ('NULL_PRIMARY_KEY','0',CONVERT(varchar(30),@NullKeyCount),CASE WHEN @NullKeyCount=0 THEN 'PASS' ELSE 'FAIL' END,'Curated key completeness.');
-      IF @LoadType='FULL'
+      IF @LoadType='FULL' OR @IsFirst=1
         INSERT @Gate2Checks(CheckName,ExpectedValue,ActualValue,Result,Details)
         VALUES('FULL_ROW_COUNT',CONVERT(varchar(30),@StageCount),CONVERT(varchar(30),@TargetCount),
                CASE WHEN @StageCount=@TargetCount THEN 'PASS' ELSE 'FAIL' END,'Full curated count equals staging.');
