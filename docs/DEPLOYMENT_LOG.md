@@ -59,3 +59,6 @@ This log records actions that actually occurred. No Azure resources were deploye
 - Installed the official Firecrawl CLI 1.20.0 from the `firecrawl/cli` npm package and completed a successful unauthenticated keyless scrape test.
 - Detected a plaintext Firecrawl API key in the user-provided attachment. The credential was not used or copied into the repository, Codex configuration, or process environment; revocation and regeneration were recommended.
 - Azure resources created: none.
+# Final enhancement round — email connector gate (2026-09-16)
+
+The existing Logic App still accepts the HTTP Request, records the event in run history, and returns 202 before any email action. Gmail delivery is **NOT CONFIGURED / NOT VERIFIED**: it requires a user-authorized Gmail API connection, and changing the live workflow before that authorization risks invalidating the working ADF notification endpoint. No email-delivery claim or inbox screenshot should be used. Once a connection is authorized, add the Gmail Send email (V2) action after Response, test a single event, and verify both the workflow run and inbox. For a consumer Gmail account, confirm the connector's Google policy compatibility with the built-in Request trigger; an HTTP *action* or HTTP connector elsewhere in the same workflow is restricted.
