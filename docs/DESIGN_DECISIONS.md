@@ -9,7 +9,7 @@
 | **ADF + Azure SQL** | Small relational workload; audit trail is easy to read in SQL; no paid capacity | Fabric fits better if the client already runs OneLake |
 | **One metadata-driven pipeline** | New table = one config row; the same controls everywhere | Metadata must be validated carefully |
 | **Every schema change needs approval** | Protects downstream reports | Manual delay |
-| **Keep loading while a change is pending** | Data keeps flowing with the last approved columns | Deviates from case study's "wait at step 5" |
+| **Keep loading while a change is pending** | Data keeps flowing with the last approved columns and follows the Step 5.1/4.1 old-schema path | The case does not define a durable `PENDING` state, so asynchronous pending behavior is our prototype interpretation |
 | **Fail safely on breaking changes** | Never invent or silently drop approved data | The table stops until fixed |
 | **Staging + two gates + one-transaction publish** | Consumers never see unchecked or half-loaded data | An extra copy step |
 | **Capture the watermark before loading** | Rows changed during a load aren't missed | Needs a reliable timestamp |
@@ -59,6 +59,13 @@
 - Public endpoints with narrow firewall rules; no private networking.
 - Gate 2's rollback path is code-reviewed but wasn't triggered live.
 - Power BI runs in Desktop only, with a single overview page.
+- `RetryCount`, `RetryIntervalSeconds`, and `ConnectionReference` exist in configuration, but the child pipeline currently uses one fixed linked service and hard-coded retry 3 / 15 seconds.
+- `RowsInserted` and `RowsUpdated` are present in the audit table but are not populated.
+- `NotificationAudit.DeliveryStatus` remains `PENDING`; Logic App delivery status is not written back to SQL.
+- Overlapping master runs for the same `ConfigId` are not explicitly prevented and could contend for the shared staging table.
+- Type/nullability evolution is detected, but existing target columns are not altered; renamed/dropped columns fail safely and incompatible type changes require engineering work.
+- The Entra report-reader group exists, but group-to-SQL-role enforcement is not verified by the checked-in artifacts.
+- The ADF-to-Logic-App path and Gmail send action are evidenced separately; the screenshots do not prove that the captured Gmail message originated from an ADF run.
 
 ## Next steps
 

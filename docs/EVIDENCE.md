@@ -54,13 +54,15 @@ All screenshots were captured from the live prototype on 2026-09-16.
 - [Gmail send action succeeded](../screenshots/logic-app/gmail-send-action-succeeded.png)
 - [Logic App run history](../screenshots/logic-app/run-history.png): 43 successful runs, 0 failed
 
+These prove two separate facts: ADF events reached the primary Logic App, and the Gmail-enabled workflow could send after reauthorization. They do **not** show one captured ADF-triggered event flowing all the way to Gmail.
+
 ## Identity and access
 
 - [Security groups](../screenshots/entra/security-groups.png): 4 `grp-kpmg-*` groups
-- [Report reader user](../screenshots/entra/report-reader-user-membership.png): tenant work account in the readers group
+- [Report reader user](../screenshots/entra/report-reader-user-membership.png): tenant work account in the readers group. This does not by itself prove the group has a SQL database role.
 - [Key Vault IAM](../screenshots/key-vault/iam-adf-secrets-user.png): group roles inherited from the resource group; ADF has Secrets User
 - [Key Vault RBAC mode](../screenshots/key-vault/access-configuration-rbac.png) · [Key Vault networking](../screenshots/key-vault/networking-selected-networks.png)
-- [App registration secret](../screenshots/entra/app-registration-secret-expiry.png): short-lived secret, value hidden
+- [App registration secret](../screenshots/entra/app-registration-secret-expiry.png): short-lived secret, value hidden; the captured credential expired on 2026-09-18
 - [MFA / security defaults](../screenshots/entra/security-defaults-mfa.png)
 
 ## Azure resources

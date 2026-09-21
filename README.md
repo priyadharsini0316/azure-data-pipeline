@@ -38,11 +38,11 @@
   - **Gate 1** (source → `stg`): row count, duplicate or null keys, schema.
   - **Gate 2** (`stg` → `curated`): keys published, duplicates or nulls, row count. A failure rolls back.
 - **Resilience:** 3 retries per table; failures stay isolated; reruns never duplicate data.
-- **Alerts:** Gmail emails for success, schema change and failure, sent through a Logic App (email can never fail a load).
+- **Alerts:** ADF sends success, schema-change and failure events to a Logic App. The optional Gmail action was validated separately; its 202-first design means email delivery does not control the table-load result.
 - **Security:**
   - Entra-only SQL and ADF managed identity.
   - Key Vault with RBAC.
-  - 4 Entra groups, a service principal, and a read-only report user.
+  - 4 Entra groups, a service principal, and a read-only report user. Group-only SQL reporting access is a production target, not proven by the checked-in evidence.
 - **Delivery:** Bicep IaC, GitHub Actions PR checks, Power BI health report.
 
 ## Architecture
@@ -50,32 +50,46 @@
 ```mermaid
 flowchart LR
     subgraph Azure["Azure - rg-kpmg-kpmg-prototype"]
-        ADF["Data Factory<br/>managed identity"]
+        ADF["3. Data Factory<br/>Lookup → ForEach → child"]
         subgraph SQL["Azure SQL (serverless)"]
-            CTL[("ctl<br/>config")]
-            SRC[("src<br/>source")]
-            STG[("stg<br/>Dev/Test")]
-            CUR[("curated<br/>Integ/Prod")]
-            AUD[("audit + rfc")]
-            REP[("reporting")]
+            CTL[("2. ctl<br/>configuration")]
+            SRC[("4. src<br/>source")]
+            STG[("5. stg<br/>Dev/Test")]
+            CUR[("6. curated<br/>Integ/Prod")]
+            AUD[("7. audit + rfc")]
+            REP[("8. reporting")]
         end
-        KV["Key Vault"]
-        LA["Logic App"]
+        KV["7. Key Vault"]
+        LA["8. Logic App"]
     end
-    ENTRA["Entra ID<br/>groups, SP, report user"]
-    PBI["Power BI"]
-    MAIL["Gmail"]
+    ENTRA["1. Entra ID<br/>authentication + authorization"]
+    PBI["9. Power BI"]
+    MAIL["9. Gmail"]
 
     CTL -->|"Load = Yes"| ADF
-    ADF --> SRC --> STG -->|"Gate 1, publish, Gate 2"| CUR
+    ADF -->|"read approved data"| SRC
+    SRC -->|"copy"| STG
+    STG -->|"Gate 1 → publish → Gate 2"| CUR
     ADF --> AUD --> REP --> PBI
     ADF --> KV
-    ADF --> LA --> MAIL
-    ENTRA -.-> ADF & SQL & KV & PBI
+    KV -->|"secure callback"| LA -->|"optional email"| MAIL
+    ENTRA -.->|"identity used throughout"| ADF & SQL & KV & PBI
 ```
 
+Read the numbers in order. When the same number appears twice, the flow has split into parallel/supporting branches:
+
+1. **Entra ID** establishes who may access ADF, SQL, Key Vault and Power BI. This is a security prerequisite; business data does not flow through Entra ID.
+2. **Configuration** identifies rows where `Load = Yes` and describes how each table should load.
+3. **ADF** reads those rows, loops over the enabled tables and invokes the reusable child process.
+4. **Source (`src`)** supplies only the previously approved columns and the required FULL or WATERMARK rows.
+5. **Staging (`stg`)** receives those rows and Gate 1 validates source versus staging.
+6. **Curated** receives the transactional publish and Gate 2 validates staging versus curated.
+7. The flow splits: **audit/RFC** records the result and schema decisions, while **Key Vault** securely supplies the Logic App callback.
+8. The branches continue: **reporting views** prepare operational metrics, while the **Logic App** accepts the notification event.
+9. **Power BI** displays pipeline health; the optional **Gmail** action sends the operational message. These are outputs, not data-processing stages.
+
 - **KPMG mapping:** `src` = Source Prod · `stg` + Gate 1 = Dev/Test · `curated` + Gate 2 = Integ/Prod.
-- **Not provisioned (cost):** VNet, private endpoints, VPN, firewall, SHIR, separate environments.
+- **Not provisioned (cost):** VNet, private endpoints, VPN/ExpressRoute, Azure Firewall appliance, SHIR and separate environments. SQL and Key Vault resource firewalls **are** provisioned.
 - More detail: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 ## Pipeline flow
@@ -127,17 +141,22 @@ Screenshots and run IDs: [docs/EVIDENCE.md](docs/EVIDENCE.md)
 ![Power BI pipeline health](screenshots/powerBI/PowerBI_home.png)
 
 - Shows configured and enabled tables, run outcomes, pending changes, gate failures, retries, and per-table health.
-- Reads only the `reporting` schema, as a read-only Entra user.
+- Uses read-only reporting views; the checked-in SQL grant targets the reporting service principal. The report-reader Entra group-to-SQL mapping is not proven by the repository.
 
 ## Documents
 
 | Document | What's inside |
 |---|---|
+| [INTERVIEW_MASTER_GUIDE.md](docs/INTERVIEW_MASTER_GUIDE.md) | Main learning path from beginner concepts through implementation and production trade-offs |
+| [INTERVIEW_CHEAT_SHEET.md](docs/INTERVIEW_CHEAT_SHEET.md) | Rapid revision, key answers and limitations |
+| [MOCK_INTERVIEW_QUESTION_BANK.md](docs/MOCK_INTERVIEW_QUESTION_BANK.md) | Sixty questions from fundamentals to senior-engineer challenges |
+| [PRESENTATION_RUNBOOK.md](docs/PRESENTATION_RUNBOOK.md) | 10/15/20-minute presentation and safe live-demo sequence |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Diagrams, components, security, IP plan, production design |
 | [DESIGN_DECISIONS.md](docs/DESIGN_DECISIONS.md) | Choices, trade-offs, flow issues in case study, limitations |
 | [CICD_PROMOTION.md](docs/CICD_PROMOTION.md) | PR checks and Dev → Prod promotion |
 | [REQUIREMENTS_TRACEABILITY_MATRIX.md](docs/REQUIREMENTS_TRACEABILITY_MATRIX.md) | Every KPMG requirement → how it was met → evidence |
 | [EVIDENCE.md](docs/EVIDENCE.md) | Screenshots grouped by topic |
+| [DOCUMENTATION_INVENTORY.md](docs/DOCUMENTATION_INVENTORY.md) | Artifact audit, authoritative sources and known coverage gaps |
 
 ## Repo map
 

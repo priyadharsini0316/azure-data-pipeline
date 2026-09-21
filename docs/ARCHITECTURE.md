@@ -11,19 +11,21 @@ flowchart LR
     ADF["Data Factory V2<br/>AutoResolve IR<br/>managed identity"]
     SQL["Azure SQL<br/>GP_S_Gen5_1 free tier"]
     KV["Key Vault<br/>RBAC, default deny"]
-    LA["Logic App<br/>Consumption"]
+    LA["Base Logic App<br/>ADF event receiver"]
+    LAMAIL["Gmail-enabled Logic App<br/>separate connector test"]
     MAIL["Gmail"]
 
     ENTRA -.->|auth| ADF & SQL & KV
     ADF -->|"managed identity, TLS"| SQL
     ADF -->|"read callback URL"| KV
-    ADF -->|"event"| LA -->|"202 first, then email"| MAIL
+    ADF -->|"event; proven"| LA
+    LAMAIL -->|"test send; proven separately"| MAIL
     DEV -->|"allowed IP only"| SQL
 ```
 
 - **Region:** Canada Central · **Resource group:** `rg-kpmg-kpmg-prototype`
-- **Resources:** Data Factory, SQL server + database, Key Vault, Logic App, Gmail API connection.
-- **Cost:** about CA$0.23 so far; SQL runs on the free allowance and auto-pauses.
+- **Resources:** Data Factory, SQL server + database, Key Vault, two Consumption Logic App resources visible in the final resource-group capture, and a Gmail API connection. The second workflow was used to verify the Gmail action; consolidate to one workflow in production.
+- **Cost evidence:** CA$0.23 was observed in the 2026-09-16 capture; this is historical evidence, not a continuing price quote. SQL uses the free allowance and auto-pauses when that allowance is exhausted.
 
 ## Components
 
@@ -33,7 +35,7 @@ flowchart LR
 | Azure SQL | Source, config, staging, curated, audit, RFC and reporting, all in one database |
 | Stored procedure `ctl.usp_ProcessConfiguredTable` | Schema check, load, gates, publish, audit |
 | Key Vault | Logic App callback URL and the service principal's secret |
-| Logic App | Replies 202 to ADF, then sends a Gmail alert |
+| Logic Apps | Base workflow receives ADF events and replies 202; a separate Gmail-enabled workflow validates email sending. One ADF-originated email trace is not captured end to end. |
 | Power BI Desktop | Pipeline health report over `reporting` views |
 
 ## Database layout
@@ -62,15 +64,15 @@ flowchart LR
 | `grp-kpmg-admins` | Contributor | — |
 | `grp-kpmg-developers` | Contributor | — |
 | `grp-kpmg-support` | Reader | — |
-| `grp-kpmg-report-readers` | — | `db_kpmg_reporting_reader` (SELECT on `reporting`) |
+| `grp-kpmg-report-readers` | — | Intended group boundary; group membership is evidenced, but group-to-SQL-role assignment is not proven by the repository |
 
 **Service principal (KPMG page 4)**
-- The app registration `sp-kpmg-report-reader-*` has a short-lived client secret stored in Key Vault.
-- It can read `reporting`; access to `curated` was tested and denied.
+- The app registration `sp-kpmg-report-reader-*` has a short-lived prototype secret. The screenshot shows that credential expired on 2026-09-18, so it must be rotated before reuse.
+- `sql/005_reporting_identity.sql` grants the service principal SELECT on `reporting` through `db_kpmg_reporting_reader`. It does not grant the Entra reader group; group-only SQL access remains unverified in the checked-in evidence.
 - **Why managed identity is preferred:** there's no secret to store, rotate or leak. A service principal is only for clients outside Azure.
 
 **Secrets and network**
-- No secrets live in Git or in the config table; Key Vault uses RBAC and a default-deny firewall.
+- No secret values live in Git or in the config table; Key Vault uses RBAC and a default-deny firewall.
 - SQL and Key Vault are public endpoints limited to one client IP, plus the Azure-services exception that ADF needs.
 
 ## Production design (not provisioned)

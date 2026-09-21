@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KPMG Data Pipeline — Interview Rehearsal</title>
+  <style>
+    :root { --navy:#062b4f; --blue:#0078d4; --ink:#102a43; --muted:#52616b; --paper:#f4f8fb; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family:"Segoe UI",Arial,sans-serif; }
+    header { background:var(--navy); color:#fff; padding:20px 6vw 16px; }
+    h1 { margin:0; font-size:clamp(24px,3vw,38px); }
+    header p { margin:6px 0 0; opacity:.88; }
+    main { max-width:1320px; margin:0 auto; padding:24px 6vw; }
+    .meta { display:flex; justify-content:space-between; gap:16px; color:var(--muted); font-size:14px; margin-bottom:14px; }
+    .stage { background:#fff; border-radius:14px; overflow:hidden; box-shadow:0 12px 34px rgba(6,43,79,.13); }
+    .slide { display:grid; grid-template-columns:minmax(0,1.7fr) minmax(280px,.9fr); min-height:600px; }
+    .visual { background:#eaf1f7; display:flex; align-items:center; justify-content:center; padding:22px; }
+    .visual img { width:100%; max-height:650px; object-fit:contain; border-radius:5px; box-shadow:0 4px 15px rgba(0,0,0,.16); }
+    .diagram { width:100%; min-height:450px; border-radius:8px; padding:42px 30px; color:#fff; background:linear-gradient(145deg,#062b4f,#0078d4); display:flex; flex-direction:column; justify-content:center; gap:14px; text-align:center; font-weight:700; font-size:clamp(18px,2vw,28px); }
+    .diagram span { display:block; font-size:clamp(15px,1.4vw,21px); font-weight:400; opacity:.96; }
+    .copy { padding:38px 34px; display:flex; flex-direction:column; justify-content:center; }
+    .copy h2 { margin:0 0 16px; color:var(--navy); font-size:clamp(25px,2.5vw,34px); }
+    .copy p { font-size:clamp(17px,1.45vw,22px); line-height:1.58; margin:0; }
+    .caption { margin-top:22px; padding:16px; border-left:5px solid var(--blue); background:#edf7ff; font-size:17px; line-height:1.45; }
+    .controls { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:18px; }
+    button { border:0; border-radius:7px; background:var(--blue); color:#fff; padding:11px 16px; font-size:15px; cursor:pointer; }
+    button.secondary { background:#e4edf4; color:var(--navy); }
+    button:focus { outline:3px solid #f9c642; }
+    #progress { flex:1; min-width:180px; accent-color:var(--blue); }
+    .note { margin-top:14px; color:var(--muted); font-size:14px; }
+    @media (max-width:820px) { .slide { grid-template-columns:1fr; } .copy { padding:25px; } .visual { min-height:320px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>KPMG Metadata-Driven Azure Data Pipeline</h1>
+    <p>Captioned interview rehearsal. Click “Start narration” to hear the simple English script.</p>
+  </header>
+  <main>
+    <div class="meta"><span id="counter"></span><span>Use ← and → keys to move slides</span></div>
+    <section class="stage">
+      <div class="slide">
+        <div class="visual" id="visual"></div>
+        <div class="copy">
+          <h2 id="title"></h2>
+          <p id="script"></p>
+          <div class="caption" id="caption"></div>
+        </div>
+      </div>
+    </section>
+    <div class="controls">
+      <button class="secondary" id="previous">← Previous</button>
+      <button id="narrate">▶ Start narration</button>
+      <button class="secondary" id="next">Next →</button>
+      <input id="progress" type="range" min="0" value="0">
+    </div>
+    <p class="note">This uses your computer's English text-to-speech voice. The screenshots are repository evidence, not simulated Azure results.</p>
+  </main>
+  <script>
+    const slides = [
+      { title:'Project objective', visual:'diagram', flow:['Multiple source tables','One reusable pipeline','Safe schema-change handling','Audit and Power BI monitoring'], script:'Good morning. This project is a metadata-driven Azure data pipeline. The objective is to process multiple source tables through one reusable pipeline. The solution handles first load, incremental load, schema changes, quality checks, audit history, and Power BI reporting.', caption:'Goal: process many tables safely without building a separate pipeline for every table.' },
+      { title:'Architecture overview', visual:'diagram', flow:['Entra ID','Configuration','Azure Data Factory','Azure SQL: src, stg, curated','Audit and RFC','Reporting views','Power BI'], script:'This is the high-level architecture. Entra ID controls authentication and authorization. The configuration table tells the pipeline which tables are enabled. Azure Data Factory orchestrates the process. Azure SQL stores the source, staging, curated, audit, RFC, and reporting objects. Power BI reads reporting views to show pipeline health.', caption:'Entra ID controls access. It does not move business data.' },
+      { title:'Configuration-driven loading', image:'../screenshots/sql-evidence/01-config-table.png', script:'This screenshot shows the configuration table. Each row describes one source table. It includes the source and target table names, the Load flag, load type, primary key, and watermark column. A row with Load equals Yes is eligible for processing. A row with Load equals No is skipped.', caption:'Adding a new table requires a valid configuration row, not a new ADF pipeline.' },
+      { title:'ADF master pipeline', image:'../screenshots/data-factory/author/master-metadata-driven.png', script:'This is the ADF master pipeline. It starts audit, reads configuration rows where Load equals Yes, and uses a ForEach activity to process each enabled table. The same child pipeline receives the ConfigId for every table. ADF manages orchestration, retries, and notifications.', caption:'One master pipeline and one reusable child pipeline handle all enabled tables.' },
+      { title:'First load and incremental load', image:'../screenshots/data-factory/monitor/01-first-load.png', script:'For the first load, there is no previous approved schema. The system records schema version one as the initial baseline, then loads data to staging and curated after the quality checks pass. For later watermark loads, the pipeline processes only new or changed rows.', caption:'First load creates the baseline. Watermark loading reduces repeated data transfer.' },
+      { title:'Staging and quality gates', image:'../screenshots/sql-evidence/03-gate1-gate2-pass.png', script:'Data does not go directly from source to curated. It first goes to staging. Gate one compares source and staging row counts, duplicate keys, null keys, and approved schema columns. After Gate one passes, the data is published to curated inside a transaction. Gate two verifies the published result. A failure protects curated data.', caption:'Staging is the quality-check area that protects final reporting data.' },
+      { title:'Schema change and RFC', image:'../screenshots/sql-evidence/02-rfc-and-schema-versions.png', script:'The stored procedure reads the source columns and data types and creates a schema hash. It compares this hash with the last approved schema hash. When the schema is different, the system creates an RFC record with Pending status. The RFC table stores the detected change, status, decision, and version history.', caption:'Schema changes are detected automatically. Approval is a separate business decision.' },
+      { title:'Pending, approved, and rejected changes', image:'../screenshots/data-factory/monitor/05-rejected.png', script:'In the current prototype, a human decision is recorded through a controlled SQL stored procedure. Pending or rejected changes do not add the new column to curated. If the previous approved columns still exist in the source, the pipeline continues with those old approved columns. If a previous approved column was removed or renamed, the table fails safely.', caption:'Current prototype: SQL-recorded human decision. Production target: business approval UI through Logic Apps, Power Apps, or ITSM.' },
+      { title:'Failure isolation and recovery', image:'../screenshots/data-factory/monitor/06-breaking-failure-retries.png', script:'This evidence shows a breaking schema scenario. One table fails after retries because an approved column was renamed. The other configured table can still succeed. The failed table does not overwrite curated data. After the source is restored, the pipeline can run successfully again.', caption:'A single bad table does not corrupt another table or final curated data.' },
+      { title:'Audit, RFC, and reporting', image:'../screenshots/powerBI/Recent_Pipeline_runs_DB.png', script:'Audit and RFC are schemas inside the same Azure SQL database. Audit tables record pipeline runs, table loads, quality checks, and notifications. RFC tables record schema change requests and approval history. Reporting is a set of SQL views. The views read audit, RFC, and configuration tables. ADF does not copy data directly to Power BI.', caption:'Stored procedure updates audit and RFC tables. Reporting views expose the latest SQL information.' },
+      { title:'Power BI operational dashboard', image:'../screenshots/powerBI/PowerBI_home.png', script:'Power BI imports the reporting SQL views and displays pipeline health. The dashboard shows configured tables, enabled tables, successful and failed runs, rows processed, pending schema changes, and recent run status. It is an operational snapshot, so the report shows new SQL data after a Power BI refresh.', caption:'Power BI counts existing RFC statuses. It does not approve or reject changes.' },
+      { title:'Security and production evolution', image:'../screenshots/data-factory/author/adf-system-assigned-managed-identity.png', script:'For security, Azure Data Factory uses a managed identity to access Azure SQL and Key Vault. Entra ID controls access for people and services. This project is a prototype. A production version should add a business approval interface, private endpoints, separate environments, CDC or Change Tracking for deletes, and centralized monitoring.', caption:'Be clear about what is implemented today and what is the production roadmap.' },
+      { title:'Conclusion', visual:'diagram', flow:['Reusable','Configuration-driven','Safe','Auditable','Explainable'], script:'To conclude, this solution uses one reusable metadata-driven pipeline for multiple tables. It supports full and incremental loads, schema-change detection, safe old-schema loading, two quality gates, audit history, and Power BI monitoring. Thank you. I am happy to answer questions.', caption:'Use this as a rehearsal. In the live interview, pause after each section and invite questions.' }
+    ];
+
+    let current = 0;
+    let autoTimer = null;
+    const visual = document.getElementById('visual');
+    const title = document.getElementById('title');
+    const script = document.getElementById('script');
+    const caption = document.getElementById('caption');
+    const counter = document.getElementById('counter');
+    const progress = document.getElementById('progress');
+    const narrate = document.getElementById('narrate');
+    progress.max = slides.length - 1;
+
+    function render() {
+      const slide = slides[current];
+      title.textContent = slide.title;
+      script.textContent = slide.script;
+      caption.textContent = slide.caption;
+      counter.textContent = `Slide ${current + 1} of ${slides.length}`;
+      progress.value = current;
+      visual.innerHTML = slide.image
+        ? `<img src="${slide.image}" alt="${slide.title} evidence screenshot">`
+        : `<div class="diagram">${slide.flow.map((item, i) => `<span>${item}${i < slide.flow.length - 1 ? '<br>↓' : ''}</span>`).join('')}</div>`;
+    }
+    function stopNarration() {
+      speechSynthesis.cancel();
+      clearTimeout(autoTimer);
+      autoTimer = null;
+      narrate.textContent = '▶ Start narration';
+    }
+    function speakCurrent() {
+      stopNarration();
+      const utterance = new SpeechSynthesisUtterance(slides[current].script);
+      utterance.lang = 'en-CA';
+      utterance.rate = 0.92;
+      utterance.onend = () => {
+        if (current < slides.length - 1) {
+          autoTimer = setTimeout(() => { current += 1; render(); speakCurrent(); }, 1700);
+        } else {
+          narrate.textContent = '▶ Start narration';
+        }
+      };
+      narrate.textContent = '■ Stop narration';
+      speechSynthesis.speak(utterance);
+    }
+    document.getElementById('previous').onclick = () => { stopNarration(); current = Math.max(0, current - 1); render(); };
+    document.getElementById('next').onclick = () => { stopNarration(); current = Math.min(slides.length - 1, current + 1); render(); };
+    progress.oninput = e => { stopNarration(); current = Number(e.target.value); render(); };
+    narrate.onclick = () => speechSynthesis.speaking ? stopNarration() : speakCurrent();
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight') document.getElementById('next').click();
+      if (e.key === 'ArrowLeft') document.getElementById('previous').click();
+    });
+    render();
+  </script>
+</body>
+</html>
